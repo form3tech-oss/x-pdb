@@ -1,0 +1,57 @@
+{{- if .Values.webhook.tls.certManager.enabled -}}
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: {{ include "x-pdb.fullname" . }}-webhook-cert
+  namespace: {{ include "x-pdb.namespace" . }}
+  labels:
+    {{- include "x-pdb.labels" . | nindent 4 }}
+spec:
+  {{- if .Values.webhook.tls.certManager.injectFromSecret }}
+  secretTemplate:
+    annotations:
+      cert-manager.io/allow-direct-injection: "true"
+  {{- end }}
+  dnsNames:
+  - {{ include "x-pdb.fullname" . }}.{{ .Release.Namespace }}.svc
+  - {{ include "x-pdb.fullname" . }}.{{ .Release.Namespace }}.svc.cluster.local
+  issuerRef:
+    {{- toYaml .Values.webhook.tls.certManager.issuerRef | nindent 4 }}
+  secretName: {{ include "x-pdb.fullname" . }}-webhook-cert
+  renewBefore: {{ .Values.webhook.tls.certManager.renewBefore }}
+  duration: {{ .Values.webhook.tls.certManager.duration }}
+  privateKey:
+    algorithm: RSA
+    encoding: PKCS1
+    size: 2048
+{{- end }}
+---
+{{- if .Values.controller.tls.certManager.enabled -}}
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: {{ include "x-pdb.fullname" . }}-controller-cert
+  namespace: {{ include "x-pdb.namespace" . }}
+  labels:
+    {{- include "x-pdb.labels" . | nindent 4 }}
+spec:
+  dnsNames:
+    {{- toYaml .Values.controller.tls.certManager.dnsNames | nindent 4 }}
+  ipAddresses:
+    {{- toYaml .Values.controller.tls.certManager.ipAddresses | nindent 4 }}
+  issuerRef:
+    {{- toYaml .Values.webhook.tls.certManager.issuerRef | nindent 4 }}
+  secretName: {{ include "x-pdb.fullname" . }}-controller-cert
+  privateKey:
+    algorithm: RSA
+    encoding: PKCS1
+    size: 2048
+  renewBefore: {{ .Values.webhook.tls.certManager.renewBefore }}
+  duration: {{ .Values.webhook.tls.certManager.duration }}
+  usages:
+    - digital signature
+    - key encipherment
+    - client auth
+    - server auth
+{{- end }}

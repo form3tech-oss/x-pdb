@@ -1,0 +1,25 @@
+syntax = "proto3";
+
+package disruptionprobe;
+
+option go_package = "github.com/x-pdb/pkg/protos/disruptionprobe";
+
+// The DisruptionProbe service definition.
+service DisruptionProbe {
+  // Sends a IsDisruptionAllowed request
+  rpc IsDisruptionAllowed(IsDisruptionAllowedRequest) returns (IsDisruptionAllowedResponse) {}
+}
+
+// The request message containing the user's name.
+message IsDisruptionAllowedRequest {
+  string pod_name = 1;
+  string pod_namespace = 2;
+  string xpdb_name = 3;
+  string xpdb_namespace = 4;
+}
+
+// The response message containing the greetings
+message IsDisruptionAllowedResponse {
+  bool is_allowed = 1;
+  string error = 2;
+}

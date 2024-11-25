@@ -1,0 +1,12 @@
+apiVersion: x-pdb.form3.tech/v1alpha1
+kind: XPodDisruptionBudget
+metadata:
+  name: sts-with-probe
+  namespace: default
+spec:
+  maxUnavailable: 1
+  selector:
+    matchLabels:
+      app: sts
+  probe:
+    endpoint: test-disruption-probe.default.svc.cluster.local:8080

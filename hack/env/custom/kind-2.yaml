@@ -1,0 +1,10 @@
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+nodes:
+  - image: 288840537196.dkr.ecr.eu-west-1.amazonaws.com/tech.form3/kind:v1.28.6-kind-v0.22.0-f3-1.0.3
+    extraPortMappings:
+      - containerPort: 30950
+        hostPort: 9002
+networking:
+  podSubnet: 10.2.0.0/16
+  serviceSubnet: 172.20.1.0/24

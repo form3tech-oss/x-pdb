@@ -1,0 +1,153 @@
+replicaCount: 2
+
+image:
+  registry: tech.form3
+  repository: x-pdb
+  pullPolicy: IfNotPresent
+  # Overrides the image tag whose default is the chart appVersion.
+  tag: "latest"
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+# In the case the Kubernetes control plane cannot access pods
+# in the pod network you might need to run it on the host network.
+# E.G. AWS EKS with Cilium running in tunneling mode.
+hostNetwork: false
+
+# In the case of running the pod on the host network you should enable
+# the dnsPolicy: ClusterFirstWithHostNet so the pod can resolve records
+# from CoreDNS.
+dnsPolicy: ClusterFirst
+
+controller:
+  controllerPort: 9643
+  webhookPort: 9443
+  healthProbePort: 8081
+  metricsPort: 8080
+  remoteEndpoints: []
+  clusterID: ""
+  log:
+    level: info
+  extraArgs: []
+    # - "--dry-run=true"
+  tls:
+    cert:
+      enabled: false
+      secretName: x-pdb-controller-tls
+      caBundle: ""
+    certManager:
+      enabled: true
+      issuerRef: {}
+      dnsNames: []
+      ipAddresses: []
+      duration: 2000h
+      renewBefore: 1000h
+
+webhook:
+  enabled: true
+  timeoutSeconds: 2
+  namespaceSelector: {}
+    # matchExpressions:
+    #   - key: x-pdb.form3.tech/enabled
+    #     operator: Exists
+  tls:
+    cert:
+      enabled: false
+      secretName: x-pdb-webhook-tls
+      caBundle: ""
+    certManager:
+      enabled: true
+      issuerRef: {}
+      duration: 2000h
+      renewBefore: 1000h
+      injectFromSecret: false
+
+serviceMonitor:
+  enabled: false
+  service:
+    port: 8080
+  labels: {}
+  interval: 60s
+  scrapeTimeout: 10s
+  path: /metrics
+  honorLabels: true
+  metricRelabelings: []
+  relabelings: []
+
+service:
+  webhook:
+    nameOverride: ""
+    annotations: {}
+    type: ClusterIP
+    port: 443
+    # loadBalancerIP: ""
+    # nodePort: ""
+  controller:
+    nameOverride: ""
+    annotations: {}
+    type: ClusterIP
+    port: 9453
+    # loadBalancerIP: ""
+    # nodePort: ""
+
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
+#  maxUnavailable: 1
+
+serviceAccount:
+  # Specifies whether a service account should be created
+  create: true
+  # Annotations to add to the service account
+  annotations: {}
+  # The name of the service account to use.
+  # If not set and create is true, a name is generated using the fullname template
+  name: ""
+
+podAnnotations: {}
+
+extraLabels: {}
+
+podSecurityContext: {}
+  # fsGroup: 2000
+
+securityContext: {}
+  # capabilities:
+  #   drop:
+  #   - ALL
+  # readOnlyRootFilesystem: true
+  # runAsNonRoot: true
+  # runAsUser: 1000
+
+automountServiceAccountToken: true
+
+extraVolumes: []
+
+extraVolumeMounts: []
+
+resources: {}
+  # We usually recommend not to specify default resources and to leave this as a conscious
+  # choice for the user. This also increases chances charts run on environments with little
+  # resources, such as Minikube. If you do want to specify resources, uncomment the following
+  # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+  # limits:
+  #   cpu: 100m
+  #   memory: 128Mi
+  # requests:
+  #   cpu: 100m
+  #   memory: 128Mi
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+priorityClassName: ""
+
+resourceQuota:
+  enabled: false
+  hard:
+    pods: 10

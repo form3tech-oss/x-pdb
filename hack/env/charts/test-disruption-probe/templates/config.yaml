@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "test-disruption-probe.fullname" . }}-config
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "test-disruption-probe.labels" . | nindent 4 }}
+    test-disruption-probe-config: "true"
+data:
+  notAllowedDisruptions: "{{ join "," .Values.notAllowedDisruptions }}"

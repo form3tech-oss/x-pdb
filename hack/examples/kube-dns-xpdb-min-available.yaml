@@ -1,0 +1,10 @@
+apiVersion: x-pdb.form3.tech/v1alpha1
+kind: XPodDisruptionBudget
+metadata:
+  name: kube-dns
+  namespace: kube-system
+spec:
+  minAvailable: 80%
+  selector:
+    matchLabels:
+      k8s-app: kube-dns

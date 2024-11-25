@@ -1,0 +1,134 @@
+# permissions to do leader election.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: {{ include "x-pdb.fullname" . }}-leader-election-role
+  namespace: {{ include "x-pdb.namespace" . }}
+  labels:
+    {{- include "x-pdb.labels" . | nindent 4 }}
+rules:
+- apiGroups:
+    - ""
+  resources:
+    - configmaps
+  verbs:
+    - get
+    - list
+    - watch
+    - create
+    - update
+    - patch
+    - delete
+- apiGroups:
+    - coordination.k8s.io
+  resources:
+    - leases
+  verbs:
+    - get
+    - list
+    - watch
+    - create
+    - update
+    - patch
+    - delete
+- apiGroups:
+    - ""
+  resources:
+    - events
+  verbs:
+    - create
+    - patch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ include "x-pdb.fullname" . }}-leader-election-rolebinding
+  namespace: {{ include "x-pdb.namespace" . }}
+  labels:
+    {{- include "x-pdb.labels" . | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: {{ include "x-pdb.fullname" . }}-leader-election-role
+subjects:
+- kind: ServiceAccount
+  name: {{ include "x-pdb.serviceAccountName" . }}
+  namespace: {{ .Release.Namespace }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ include "x-pdb.fullname" . }}-role
+  labels:
+    {{- include "x-pdb.labels" . | nindent 4 }}
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - events
+  verbs:
+  - create
+  - patch
+- apiGroups:
+    - ""
+  resources:
+    - pods
+  verbs:
+    - get
+    - list
+    - watch
+    - update
+    - patch
+- apiGroups:
+    - "apps"
+  resources:
+    - statefulsets
+    - statefulsets/scale
+    - daemonsets
+    - deployments
+    - deployments/scale
+    - replicasets
+    - replicasets/scale
+  verbs:
+    - get
+    - list
+    - watch
+- apiGroups:
+    - "x-pdb.form3.tech"
+  resources:
+    - xpoddisruptionbudgets
+  verbs:
+    - get
+    - list
+    - watch
+    - create
+    - update
+    - patch
+    - delete
+- apiGroups:
+    - coordination.k8s.io
+  resources:
+    - leases
+  verbs:
+    - get
+    - list
+    - watch
+    - create
+    - update
+    - patch
+    - delete
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ include "x-pdb.fullname" . }}-rolebinding
+  labels:
+    {{- include "x-pdb.labels" . | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ include "x-pdb.fullname" . }}-role
+subjects:
+- kind: ServiceAccount
+  name: {{ include "x-pdb.serviceAccountName" . }}
+  namespace: {{ include "x-pdb.namespace" . }}

@@ -1,0 +1,23 @@
+# permissions for end users to view xpoddisruptionbudgets.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/name: x-pdb
+    app.kubernetes.io/managed-by: kustomize
+  name: xpoddisruptionbudget-viewer-role
+rules:
+- apiGroups:
+  - x-pdb.form3.tech
+  resources:
+  - xpoddisruptionbudgets
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - x-pdb.form3.tech
+  resources:
+  - xpoddisruptionbudgets/status
+  verbs:
+  - get

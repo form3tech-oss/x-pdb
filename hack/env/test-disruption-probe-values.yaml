@@ -1,0 +1,4 @@
+image:
+  registry: ""
+notAllowedDisruptions:
+  - "default/sts-0"
