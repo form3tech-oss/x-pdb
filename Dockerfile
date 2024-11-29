@@ -1,5 +1,8 @@
 FROM golang:1.23 AS builder
 
+ARG TARGETOS
+ARG TARGETARCH
+
 WORKDIR /workspace
 
 COPY go.mod go.mod
@@ -13,7 +16,7 @@ COPY internal/ internal/
 COPY pkg/ pkg/
 
 # Build
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -o x-pdb cmd/controller/main.go
+RUN CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -a -o x-pdb cmd/controller/main.go
 
 FROM gcr.io/distroless/static:nonroot
 WORKDIR /
