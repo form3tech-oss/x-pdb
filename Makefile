@@ -1,23 +1,33 @@
-# Image URL to use all building/pushing image targets
-IMG ?= x-pdb:latest
-DOCKERFILE_PATH ?= Dockerfile
+##########
+# Docker #
+##########
 
-TEST_APP_IMG ?= x-pdb-test:latest
-TEST_APP_DOCKERFILE_PATH ?= Dockerfile.testapp
-
+# Image names
+IMG                       ?= x-pdb:latest
+TEST_APP_IMG              ?= x-pdb-test:latest
 TEST_DISRUPTION_PROBE_IMG ?= x-pdb-test-disruption-probe:latest
+
+# Docker file paths
+DOCKERFILE_PATH                       ?= Dockerfile
+TEST_APP_DOCKERFILE_PATH              ?= Dockerfile.testapp
 TEST_DISRUPTION_PROBE_DOCKERFILE_PATH ?= Dockerfile.testdisruptionprobe
 
-ENVTEST_K8S_VERSION = 1.31.0
+########
+# Kind #
+########
+
+CONTEXT            ?= kind-$(KIND_CLUSTER_NAME)
+CLUSTER            ?= 1
+KIND_IMAGE         ?= kindest/node:v1.31.2
+KIND_CLUSTER_NAME  ?= x-pdb-$(CLUSTER)
+
+#########
+# Proto #
+#########
 
 PROTO_FILES := $(wildcard protos/**/*.proto)
 PROTO_GO_OUT_DIR := pkg
 
-KIND_CLUSTER_NAME ?= x-pdb-$(CLUSTER)
-KIND_CONFIG_FOLDER ?= ./hack/env
-
-CLUSTER ?= 1
-CONTEXT ?= kind-$(KIND_CLUSTER_NAME)
 
 # Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
 ifeq (,$(shell go env GOBIN))
@@ -76,29 +86,29 @@ vet: ## Run go vet against code.
 	go vet ./...
 
 .PHONY: test
-test: manifests generate fmt vet ## Run tests.
+test: ## Run tests.
 	go test -v -race $(shell go list ./... | grep -v tests) -coverprofile cover.out
 
 ##@ E2E Tests
 
 .PHONY: test-app-docker-build
-test-app-docker-build:
+test-app-docker-build: ## Generates Test App docker image.
 	$(MAKE) docker-build IMG=$(TEST_APP_IMG) DOCKERFILE_PATH=$(TEST_APP_DOCKERFILE_PATH)
 
 .PHONY: test-app-load-image
-test-app-load-image:
+test-app-load-image: ## Loads Test App docker image into a KinD cluster.
 	kind load docker-image $(TEST_APP_IMG) --name $(KIND_CLUSTER_NAME)
 
 .PHONY: test-disruption-probe-docker-build
-test-disruption-probe-docker-build:
+test-disruption-probe-docker-build: ## Generates Test disruption probe docker image.
 	$(MAKE) docker-build IMG=$(TEST_DISRUPTION_PROBE_IMG) DOCKERFILE_PATH=$(TEST_DISRUPTION_PROBE_DOCKERFILE_PATH)
 
 .PHONY: test-disruption-probe-load-image
-test-disruption-probe-load-image:
+test-disruption-probe-load-image: ## Loads Test disruption probe docker image into a KinD cluster.
 	kind load docker-image $(TEST_DISRUPTION_PROBE_IMG) --name $(KIND_CLUSTER_NAME)
 
 .PHONY: deploy-e2e
-deploy-e2e: test-app-docker-build test-disruption-probe-docker-build docker-build
+deploy-e2e: test-app-docker-build test-disruption-probe-docker-build docker-build ## Deploys x-pdb and loads test images into all the testing KinD clusters.
 	@echo "building and deploying x-pdb and e2e test apps"
 	for number in 1 2 3; do \
 		$(MAKE) install CLUSTER=$$number; \
@@ -107,7 +117,7 @@ deploy-e2e: test-app-docker-build test-disruption-probe-docker-build docker-buil
 	done
 
 .PHONY: e2e
-e2e:
+e2e: ## Runs the E2E tests on top of the KinD clusters.
 	go test -v -race -timeout 30m ./tests/...
 
 .PHONY: lint
@@ -149,7 +159,7 @@ PLATFORMS ?= linux/arm64,linux/amd64,linux/s390x,linux/ppc64le
 .PHONY: docker-buildx
 docker-buildx: ## Build and push docker image for the manager for cross-platform support
 	# copy existing Dockerfile and insert --platform=${BUILDPLATFORM} into Dockerfile.cross, and preserve the original Dockerfile
-	sed -e '1 s/\(^FROM\)/FROM --platform=\$$\{BUILDPLATFORM\}/; t' -e ' 1,// s//FROM --platform=\$$\{BUILDPLATFORM\}/' Dockerfile > Dockerfile.cross
+	sed -e '1 s/\(^FROM\)/FROM --platform=\$$\{BUILDPLATFORM\}/; t' -e ' 1,// s//FROM --platform=\$$\{BUILDPLATFORM\}/' $(DOCKERFILE_PATH) > Dockerfile.cross
 	- $(CONTAINER_TOOL) buildx create --name x-pdb-builder
 	$(CONTAINER_TOOL) buildx use x-pdb-builder
 	- $(CONTAINER_TOOL) buildx build --push --platform=$(PLATFORMS) --tag ${IMG} -f Dockerfile.cross .
@@ -163,50 +173,54 @@ ifndef ignore-not-found
 endif
 
 .PHONY: multi-cluster
-multi-cluster: gen-certs
+multi-cluster: gen-certs ## Creates all the testing KinD clusters.
 	for number in 1 2 3; do \
 		$(MAKE) kind-cluster install-metallb install-cert-manager CLUSTER=$$number; \
 	done
 
+.PHONY: destroy-multi-cluster
+destroy-multi-cluster: ## Destroys all the testing KinD clusters.
+	kind get clusters | grep x-pdb | xargs -I {} kind delete cluster -n {}
+
 .PHONY: deploy
-deploy: docker-build
-	@echo "building and deploying x-pdb and e2e test app"
+deploy: docker-build ## Deploys x-pdb on all testing KinD clusters.
+	@echo "building and deploying x-pdb"
 	for number in 1 2 3; do \
 		$(MAKE) install CLUSTER=$$number; \
 	done
 
 .PHONY: kind-cluster
-kind-cluster:
+kind-cluster: ## Creates a KinD cluster.
 	echo "CREATING CLUSTER context=$(CONTEXT) cluster=$(CLUSTER)"
-	kind create cluster --config=$(KIND_CONFIG_FOLDER)/kind-${CLUSTER}.yaml --name $(KIND_CLUSTER_NAME)
+	kind create cluster --config=./hack/env/kind-${CLUSTER}.yaml --image $(KIND_IMAGE) --name $(KIND_CLUSTER_NAME)
 
 .PHONY: install-metallb
-install-metallb:
+install-metallb: ## Installs metallb on a KinD cluster.
 	./hack/install-metallb.sh $(CONTEXT) $(CLUSTER)
 
 .PHONY: install-cert-manager
-install-cert-manager:
+install-cert-manager: ## Installs cert-manager and a cluster issuer in a KinD cluster.
 	kubectl apply --wait=true -f https://github.com/cert-manager/cert-manager/releases/download/v1.13.3/cert-manager.yaml --context $(CONTEXT)
 	kubectl wait deployment -n cert-manager cert-manager-webhook --for condition=Available=True --timeout=90s --context $(CONTEXT)
 	kubectl create secret tls ca-key-pair -n cert-manager --cert=hack/certs/ca.crt --key=hack/certs/ca.key --dry-run=client -o yaml | kubectl apply -f - --context $(CONTEXT)
 	kubectl apply -f hack/env/cluster-issuer.yaml --wait=true --context $(CONTEXT)
 
 .PHONY: kind-load
-kind-load:
+kind-load: ## Loads an image into a KinD cluster.
 	kind load docker-image ${IMG} --name $(KIND_CLUSTER_NAME)
 
 .PHONY: gen-certs
-gen-certs:
+gen-certs: ## Generates all the TLS certificates for x-pdb
 	./hack/gen-certs.sh
 
 .PHONY: install
-install: kind-load
+install: kind-load ## Installs x-pdb into a cluster
 	./hack/install-xpdb.sh $(CONTEXT) $(CLUSTER)
 
 ##@ Proto
 
 .PHONY: proto-generate
-proto-generate: 
+proto-generate: ## Generates the go packages from the proto contracts.
 	protoc --go_out=$(PROTO_GO_OUT_DIR) --go_opt=paths=source_relative \
 	--go-grpc_out=$(PROTO_GO_OUT_DIR) --go-grpc_opt=paths=source_relative \
 	$(PROTO_FILES)
@@ -228,7 +242,6 @@ GOLANGCI_LINT = $(LOCALBIN)/golangci-lint
 ## Tool Versions
 KUSTOMIZE_VERSION ?= v5.5.0
 CONTROLLER_TOOLS_VERSION ?= v0.16.4
-ENVTEST_VERSION ?= release-0.19
 GOLANGCI_LINT_VERSION ?= v1.61.0
 
 .PHONY: kustomize
@@ -240,11 +253,6 @@ $(KUSTOMIZE): $(LOCALBIN)
 controller-gen: $(CONTROLLER_GEN) ## Download controller-gen locally if necessary.
 $(CONTROLLER_GEN): $(LOCALBIN)
 	$(call go-install-tool,$(CONTROLLER_GEN),sigs.k8s.io/controller-tools/cmd/controller-gen,$(CONTROLLER_TOOLS_VERSION))
-
-.PHONY: envtest
-envtest: $(ENVTEST) ## Download setup-envtest locally if necessary.
-$(ENVTEST): $(LOCALBIN)
-	$(call go-install-tool,$(ENVTEST),sigs.k8s.io/controller-runtime/tools/setup-envtest,$(ENVTEST_VERSION))
 
 .PHONY: golangci-lint
 golangci-lint: $(GOLANGCI_LINT) ## Download golangci-lint locally if necessary.

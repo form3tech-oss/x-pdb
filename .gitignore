@@ -6,11 +6,9 @@
 *.dylib
 bin/*
 Dockerfile.cross
-Dockerfile.custom
-Dockerfile.*.custom
+Dockerfile.*custom
 Makefile.custom
 hack/certs
-hack/custom
 
 # Test binary, built with `go test -c`
 *.test
