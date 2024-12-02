@@ -2,6 +2,8 @@ name: Publish
 
 on:
   push:
+    tags:
+      - "**"
 
 jobs:
   docker:
@@ -26,3 +28,5 @@ jobs:
           platforms: linux/amd64,linux/arm64
           push: true
           tags: ghcr.io/form3tech-oss/x-pdb:v0.0.1
+          outputs: "type=registry,push=true"
+          provenance: false
