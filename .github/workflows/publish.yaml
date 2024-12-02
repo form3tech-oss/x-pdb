@@ -25,4 +25,4 @@ jobs:
         with:
           platforms: linux/amd64,linux/arm64
           push: true
-          tags: form3tech-oss/x-pdb:latest
+          tags: ghcr.io/form3tech-oss/x-pdb:v0.0.1
