@@ -15,12 +15,10 @@ COPY cmd/controller cmd/controller
 COPY internal/ internal/
 COPY pkg/ pkg/
 
-# Build
 RUN CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -a -o x-pdb cmd/controller/main.go
 
 FROM gcr.io/distroless/static:nonroot
 WORKDIR /
 COPY --from=builder /workspace/x-pdb .
 USER 65532:65532
-
 ENTRYPOINT ["/x-pdb"]
