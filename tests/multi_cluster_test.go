@@ -255,5 +255,4 @@ func (s *multiClusterTestSuite) TestPendingActivities() {
 		pods_preactivities_are_deleted,
 		evicting_one_pod_must_be_allowed,
 	)
-
 }

@@ -166,7 +166,7 @@ func (w *configWatcher) parseConfigMap(cm *corev1.ConfigMap) error {
 		logger.Error(fmt.Errorf("configmap didn't have the config property"), "configmap didn't have the config property")
 	}
 
-	items := strings.Split(string(content), ",")
+	items := strings.Split(content, ",")
 
 	disruptionAllowed := map[string]bool{}
 	for i := range items {
@@ -259,7 +259,10 @@ type disruptionProbeServer struct {
 	disruptionprobepb.UnimplementedDisruptionProbeServer
 }
 
-func (s *disruptionProbeServer) IsDisruptionAllowed(ctx context.Context, req *disruptionprobepb.IsDisruptionAllowedRequest) (*disruptionprobepb.IsDisruptionAllowedResponse, error) {
+func (s *disruptionProbeServer) IsDisruptionAllowed(
+	ctx context.Context,
+	req *disruptionprobepb.IsDisruptionAllowedRequest,
+) (*disruptionprobepb.IsDisruptionAllowedResponse, error) {
 	logger.Info("received request", "namespace", req.PodNamespace, "name", req.PodName)
 
 	isDisruptionAllowed := s.configWatcher.IsDisruptionAllowed(req.PodNamespace, req.PodName)

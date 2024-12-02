@@ -84,7 +84,8 @@ func NewPodValidationWebhook(
 	pdbService *pdb.Service,
 	lockService *lock.Service,
 	disruptionProbeService *disruptionprobe.Service,
-	preactivitiesService *preactivities.Service) *PodValidationWebhook {
+	preactivitiesService *preactivities.Service,
+) *PodValidationWebhook {
 	return &PodValidationWebhook{
 		client:                 client,
 		logger:                 logger,
@@ -316,7 +317,6 @@ func (h PodValidationWebhook) handleNotAllowedDisruption(
 		false,
 		admissionResponseMessage,
 		ptr.To(int32(http.StatusTooManyRequests)))
-
 }
 
 func getDisruptionTargetCondition(po *corev1.Pod) *corev1.PodCondition {

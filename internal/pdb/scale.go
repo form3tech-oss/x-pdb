@@ -109,7 +109,7 @@ func (s *ScaleFinder) FindExpectedScale(ctx context.Context, pods []*corev1.Pod)
 			var controllerNScale *controllerAndScale
 			controllerNScale, err = finder(ctx, controllerRef, pod.Namespace)
 			if err != nil {
-				return
+				return expectedCount, unmanagedPods, err
 			}
 			if controllerNScale != nil {
 				controllerScale[controllerNScale.UID] = controllerNScale.scale
@@ -119,7 +119,7 @@ func (s *ScaleFinder) FindExpectedScale(ctx context.Context, pods []*corev1.Pod)
 		}
 		if !foundController {
 			err = fmt.Errorf("found no controllers for pod %q: %s", pod.Name, pod.String())
-			return
+			return expectedCount, unmanagedPods, err
 		}
 	}
 

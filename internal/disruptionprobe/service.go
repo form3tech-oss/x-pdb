@@ -11,9 +11,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 )
 
-var (
-	probeTimeout = 2 * time.Second
-)
+var probeTimeout = 2 * time.Second
 
 type Service struct {
 	clientPool *ClientPool

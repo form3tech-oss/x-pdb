@@ -32,9 +32,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-var (
-	remoteLockTimeout = 2 * time.Second
-)
+var remoteLockTimeout = 2 * time.Second
 
 // Service is responsible to manage the locks
 // used to guarantee that there are no race conditions
@@ -208,7 +206,7 @@ func (s *Service) remoteLock(ctx context.Context, leaseHolderIdentity, namespace
 	var errs []error
 	for _, r := range results {
 		if !r.Acquired {
-			errs = append(errs, fmt.Errorf("lock not aquired: %s", r.Error))
+			errs = append(errs, fmt.Errorf("lock not acquired: %s", r.Error))
 		}
 	}
 	if len(errs) > 0 {

@@ -27,11 +27,13 @@ type ClientPool struct {
 func NewClientPool(
 	ctx context.Context,
 	logger *logr.Logger,
-	certsDir string) *ClientPool {
+	certsDir string,
+) *ClientPool {
 	return &ClientPool{
-		clients:  make(map[string]disruptionprobepb.DisruptionProbeClient),
-		mux:      &sync.Mutex{},
 		certsDir: certsDir,
+		clients:  make(map[string]disruptionprobepb.DisruptionProbeClient),
+		ctx:      ctx,
+		mux:      &sync.Mutex{},
 		logger:   logger,
 	}
 }
@@ -83,7 +85,6 @@ func (p *ClientPool) newClient(endpoint string) (disruptionprobepb.DisruptionPro
 			),
 		),
 	)
-
 	if err != nil {
 		return nil, err
 	}

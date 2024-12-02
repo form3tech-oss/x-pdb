@@ -34,7 +34,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
-const clusterContext = "kind-x-pdb-%d"
+const (
+	clusterContext       = "kind-x-pdb-%d"
+	readyAnnotationValue = "true"
+)
 
 var (
 	scheme        = runtime.NewScheme()
@@ -90,14 +93,14 @@ func (s *testStage) cleanup() {
 		s.st.NoError(err, "unable to list pods")
 		for i := range podList.Items {
 			po := podList.Items[i]
-			logs, err := getPodLogs(cc, po.Name)
+			logs, err := s.getPodLogs(cc, po.Name)
 			s.st.NoError(err, "unable to get pod logs")
 			s.st.T().Logf("pod %s logs: %s", po.Name, logs)
 		}
 	}
 }
 
-func getPodLogs(cc *ClusterContext, podName string) (string, error) {
+func (s *testStage) getPodLogs(cc *ClusterContext, podName string) (string, error) {
 	req := cc.cs.CoreV1().Pods("default").GetLogs(podName, &v1.PodLogOptions{
 		TailLines: ptr.To(int64(1000)),
 	})
@@ -105,7 +108,12 @@ func getPodLogs(cc *ClusterContext, podName string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	defer podLogs.Close()
+	defer func() {
+		err := podLogs.Close()
+		if err != nil {
+			s.st.T().Logf("error on closing pod log stream: %s", err)
+		}
+	}()
 	var buf bytes.Buffer
 	_, err = io.Copy(&buf, podLogs)
 	if err != nil {
@@ -115,8 +123,8 @@ func getPodLogs(cc *ClusterContext, podName string) (string, error) {
 	return str, nil
 }
 
-func (s *testStage) in_cluster_1(modifier ...Modifier) *testStage {
-	return s.in_cluster(1, modifier...)
+func (s *testStage) in_cluster_1(modifier ...Modifier) {
+	s.in_cluster(1, modifier...)
 }
 
 func (s *testStage) in_all_clusters(modifier ...Modifier) *testStage {
@@ -126,13 +134,12 @@ func (s *testStage) in_all_clusters(modifier ...Modifier) *testStage {
 	return s
 }
 
-func (s *testStage) in_cluster(clusterID int, modifier ...Modifier) *testStage {
+func (s *testStage) in_cluster(clusterID int, modifier ...Modifier) {
 	clusterContext, err := makeClusterContext(s, clusterID)
 	s.st.NoError(err, "unable to create cluster context")
 	for _, m := range modifier {
 		m(clusterContext)
 	}
-	return s
 }
 
 func cleanup_leases_across_all_clusters(cc *ClusterContext) {
@@ -141,33 +148,42 @@ func cleanup_leases_across_all_clusters(cc *ClusterContext) {
 		cx, err := makeClusterContext(cc.testStage, i)
 		cc.testStage.st.NoError(err, "unable to create cluster context")
 		var lease coordv1.Lease
-		err = cx.client.DeleteAllOf(cc.testStage.ctx, &lease, client.InNamespace("kube-system"), client.MatchingLabels{
-			"app": "x-pdb",
-		})
+		err = cx.client.DeleteAllOf(
+			cc.testStage.ctx,
+			&lease,
+			client.InNamespace("kube-system"),
+			client.MatchingLabels{
+				"app": "x-pdb",
+			})
 		cc.testStage.st.NoError(err, "unable clean up dangling leases")
 	}
 }
 
 func wait_until_all_pods_are_ready(cc *ClusterContext) {
-	err := wait.PollUntilContextTimeout(context.Background(), retryInterval, waitPeriod, true, func(ctx context.Context) (done bool, err error) {
-		var podList v1.PodList
-		if err := cc.client.List(cc.testStage.ctx, &podList, client.InNamespace("default"), client.MatchingLabels{
-			"app": "test",
-		}); err != nil {
-			return false, err
-		}
-		var deployment appsv1.Deployment
-		if err := cc.client.Get(cc.testStage.ctx, types.NamespacedName{
-			Name:      "test",
-			Namespace: "default",
-		}, &deployment); err != nil {
-			return false, err
-		}
-		if countHealthyPods(podList.Items) >= *deployment.Spec.Replicas {
-			return true, nil
-		}
-		return false, nil
-	})
+	err := wait.PollUntilContextTimeout(
+		context.Background(),
+		retryInterval,
+		waitPeriod,
+		true,
+		func(ctx context.Context) (done bool, err error) {
+			var podList v1.PodList
+			if err := cc.client.List(cc.testStage.ctx, &podList, client.InNamespace("default"), client.MatchingLabels{
+				"app": "test",
+			}); err != nil {
+				return false, err
+			}
+			var deployment appsv1.Deployment
+			if err := cc.client.Get(cc.testStage.ctx, types.NamespacedName{
+				Name:      "test",
+				Namespace: "default",
+			}, &deployment); err != nil {
+				return false, err
+			}
+			if countHealthyPods(podList.Items) >= *deployment.Spec.Replicas {
+				return true, nil
+			}
+			return false, nil
+		})
 	cc.testStage.st.NoError(err, "not all pods are Ready")
 }
 
@@ -179,28 +195,33 @@ func make_all_pods_ready(cc *ClusterContext) {
 	var podList v1.PodList
 	var deployment appsv1.Deployment
 	// wait for the exact number of pods to be created
-	err := wait.PollUntilContextTimeout(context.Background(), retryInterval, waitPeriod, true, func(ctx context.Context) (done bool, err error) {
-		if err := cc.client.List(cc.testStage.ctx, &podList, client.InNamespace("default"), client.MatchingLabels{
-			"app": "test",
-		}); err != nil {
-			return false, err
-		}
-		if err := cc.client.Get(cc.testStage.ctx, types.NamespacedName{
-			Name:      "test",
-			Namespace: "default",
-		}, &deployment); err != nil {
-			return false, err
-		}
-		if len(podList.Items) >= int(*deployment.Spec.Replicas) {
-			return true, nil
-		}
-		return false, nil
-	})
+	err := wait.PollUntilContextTimeout(
+		context.Background(),
+		retryInterval,
+		waitPeriod,
+		true,
+		func(ctx context.Context) (done bool, err error) {
+			if err := cc.client.List(cc.testStage.ctx, &podList, client.InNamespace("default"), client.MatchingLabels{
+				"app": "test",
+			}); err != nil {
+				return false, err
+			}
+			if err := cc.client.Get(cc.testStage.ctx, types.NamespacedName{
+				Name:      "test",
+				Namespace: "default",
+			}, &deployment); err != nil {
+				return false, err
+			}
+			if len(podList.Items) >= int(*deployment.Spec.Replicas) {
+				return true, nil
+			}
+			return false, nil
+		})
 	cc.testStage.st.NoError(err, "not all pods are Ready")
 
 	configMapData := make(map[string]string)
 	for i := range podList.Items {
-		configMapData[podList.Items[i].Name] = "true"
+		configMapData[podList.Items[i].Name] = readyAnnotationValue
 	}
 	cm := &v1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
@@ -271,16 +292,21 @@ func make_one_pod_unready(cc *ClusterContext) {
 	cc.testStage.st.NoError(err, "unable to update configmap")
 
 	// wait for it to be unready
-	err = wait.PollUntilContextTimeout(context.Background(), retryInterval, waitPeriod, true, func(ctx context.Context) (done bool, err error) {
-		var pod v1.Pod
-		if err := cc.client.Get(cc.testStage.ctx, types.NamespacedName{
-			Name:      unreadyPod,
-			Namespace: "default",
-		}, &pod); err != nil {
-			return false, err
-		}
-		return !pdb.IsPodReady(&pod), nil
-	})
+	err = wait.PollUntilContextTimeout(
+		context.Background(),
+		retryInterval,
+		waitPeriod,
+		true,
+		func(ctx context.Context) (done bool, err error) {
+			var pod v1.Pod
+			if err := cc.client.Get(cc.testStage.ctx, types.NamespacedName{
+				Name:      unreadyPod,
+				Namespace: "default",
+			}, &pod); err != nil {
+				return false, err
+			}
+			return !pdb.IsPodReady(&pod), nil
+		})
 	cc.testStage.st.NoError(err, "not all pods are Ready")
 }
 
@@ -298,7 +324,11 @@ func newConfigMap() *v1.ConfigMap {
 
 func evicting_one_pod_must_not_be_allowed(cc *ClusterContext) {
 	err := try_evict_pod(cc)
-	cc.testStage.st.ErrorContains(err, "Cannot disrupt pod as it would violate the pod's xpdb disruption budget.", "unexpected error trying to evict pod")
+	cc.testStage.st.ErrorContains(
+		err,
+		"Cannot disrupt pod as it would violate the pod's xpdb disruption budget.",
+		"unexpected error trying to evict pod",
+	)
 }
 
 func evicting_one_pod_must_not_be_allowed_by_disruption_probe(cc *ClusterContext) {
@@ -326,23 +356,32 @@ func try_evict_all_pods(cc *ClusterContext) error {
 	err := cc.client.List(cc.testStage.ctx, &podList, client.InNamespace("default"), client.MatchingLabels{
 		"app": "test",
 	})
-	cc.testStage.st.NoError(err, "unable to list pods")
+	if err != nil {
+		return err
+	}
 	for i := range podList.Items {
 		err = cc.client.SubResource("eviction").Create(cc.testStage.ctx, &podList.Items[i], &policyv1.Eviction{})
-		cc.testStage.st.NoError(err, "unable to evict pod")
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }
 
 func evict_pod_until_successful(cc *ClusterContext) error {
 	var evictionErr error
-	err := wait.PollUntilContextTimeout(context.Background(), retryInterval, waitPeriod, true, func(ctx context.Context) (done bool, err error) {
-		evictionErr = try_evict_pod(cc)
-		if evictionErr == nil {
-			return true, nil
-		}
-		return false, nil
-	})
+	err := wait.PollUntilContextTimeout(
+		context.Background(),
+		retryInterval,
+		waitPeriod,
+		true,
+		func(ctx context.Context) (done bool, err error) {
+			evictionErr = try_evict_pod(cc)
+			if evictionErr == nil {
+				return true, nil
+			}
+			return false, nil
+		})
 	if err != nil {
 		return fmt.Errorf("eviction was not possible: %w", evictionErr)
 	}
@@ -397,19 +436,24 @@ func a_deployment_with_three_replicas(cc *ClusterContext) {
 		})
 		cc.testStage.st.NoError(err, "unable to clean up pod")
 
-		err = wait.PollUntilContextTimeout(context.Background(), retryInterval, waitPeriod, true, func(ctx context.Context) (done bool, err error) {
-			cc.testStage.st.T().Logf("waiting until all pods with label app=test are gone")
-			var podList v1.PodList
-			if err := cc.client.List(cc.testStage.ctx, &podList, client.InNamespace("default"), client.MatchingLabels{
-				"app": "test",
-			}); err != nil {
-				return false, err
-			}
-			if len(podList.Items) == 0 {
-				return true, nil
-			}
-			return false, nil
-		})
+		err = wait.PollUntilContextTimeout(
+			context.Background(),
+			retryInterval,
+			waitPeriod,
+			true,
+			func(ctx context.Context) (done bool, err error) {
+				cc.testStage.st.T().Logf("waiting until all pods with label app=test are gone")
+				var podList v1.PodList
+				if err := cc.client.List(cc.testStage.ctx, &podList, client.InNamespace("default"), client.MatchingLabels{
+					"app": "test",
+				}); err != nil {
+					return false, err
+				}
+				if len(podList.Items) == 0 {
+					return true, nil
+				}
+				return false, nil
+			})
 		cc.testStage.st.NoError(err, "error waiting for pod removal")
 	})
 	create_resource_with_cleanup(cc, newDeployment(3))
@@ -625,7 +669,12 @@ func a_xpdb_with_max_unavailable_1_and_probe(cc *ClusterContext) {
 	create_resource_with_cleanup(cc, newXPDB(nil, ptr.To(int32(1)), nil, probe))
 }
 
-func newXPDB(minAvailable, maxUnavailable *int32, suspended *bool, probe *v1alpha1.XPodDisruptionBudgetProbeSpec) *v1alpha1.XPodDisruptionBudget {
+func newXPDB(
+	minAvailable,
+	maxUnavailable *int32,
+	suspended *bool,
+	probe *v1alpha1.XPodDisruptionBudgetProbeSpec,
+) *v1alpha1.XPodDisruptionBudget {
 	xpdb := &v1alpha1.XPodDisruptionBudget{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "test",
@@ -660,7 +709,11 @@ func newXPDB(minAvailable, maxUnavailable *int32, suspended *bool, probe *v1alph
 
 const for_2_minutes = time.Minute * 2
 
-func (s *testStage) run_race_test(testDuration time.Duration, testFunc func(cc *ClusterContext), verifyFunc func(ccs []*ClusterContext)) *testStage {
+func (s *testStage) run_race_test(
+	testDuration time.Duration,
+	testFunc func(cc *ClusterContext),
+	verifyFunc func(ccs []*ClusterContext),
+) *testStage {
 	timeoutCtx, cancel := context.WithTimeout(s.ctx, testDuration)
 	defer cancel()
 
@@ -801,8 +854,8 @@ func test_disruption_probe_is_installed(cc *ClusterContext) {
 		"-f", "./tests/resources/test-disruption-probe-values.yaml",
 		"--kube-context", fmt.Sprintf("kind-x-pdb-%d", cc.clusterID))
 
-	_, err := runCmd(cmd)
-	cc.testStage.st.NoError(err, "unable to install test-disruption-probe")
+	output, err := runCmd(cmd)
+	cc.testStage.st.NoError(err, "unable to install test-disruption-probe", "output", output)
 
 	cc.testStage.st.T().Cleanup(func() {
 		//nolint:gosec
@@ -810,8 +863,8 @@ func test_disruption_probe_is_installed(cc *ClusterContext) {
 			"--namespace", "default",
 			"--kube-context", fmt.Sprintf("kind-x-pdb-%d", cc.clusterID))
 
-		_, err := runCmd(cmd)
-		cc.testStage.st.NoError(err, "unable to install test-disruption-probe")
+		output, err := runCmd(cmd)
+		cc.testStage.st.NoError(err, "unable to install test-disruption-probe", "output", output)
 	})
 }
 

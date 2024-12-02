@@ -48,7 +48,7 @@ import (
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 
 	xpdbv1alpha1 "github.com/form3tech-oss/x-pdb/api/v1alpha1"
-	//+kubebuilder:scaffold:imports
+	// +kubebuilder:scaffold:imports
 )
 
 var (
@@ -60,7 +60,7 @@ func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 
 	utilruntime.Must(xpdbv1alpha1.AddToScheme(scheme))
-	//+kubebuilder:scaffold:scheme
+	// +kubebuilder:scaffold:scheme
 }
 
 func main() {
@@ -84,10 +84,17 @@ func main() {
 	flag.IntVar(&controllerPort, "controller-port", 9643, "The state server binding port")
 	flag.StringVar(&remoteEndpoints, "remote-endpoints", "", "The list of endpoints of the remote pdb controllers")
 	flag.StringVar(&leaseNamespace, "namespace", "kube-system", "the namespace in which the controller runs in")
-	flag.StringVar(&podID, "pod-id", os.Getenv("HOSTNAME"), "The ID of the pod x-pdb pod. Used as prefix for the lease-holder-identity to obtain locks across clusters.")
-	flag.StringVar(&clusterID, "cluster-id", "no-id-set", "The ID of the cluster where x-pdb is running. Used as prefix for the lease-holder-identity to obtain locks across clusters.")
+	flag.StringVar(&podID, "pod-id", os.Getenv("HOSTNAME"),
+		"The ID of the pod x-pdb pod. Used as prefix for the lease-holder-identity to obtain locks across clusters.",
+	)
+	flag.StringVar(&clusterID, "cluster-id", "no-id-set",
+		"The ID of the cluster where x-pdb is running."+
+			"Used as prefix for the lease-holder-identity to obtain locks across clusters.",
+	)
 	flag.StringVar(&kubeContext, "kube-context", "", "kube context to connect to a cluster")
-	flag.BoolVar(&dryRun, "dry-run", false, "run the admission controller in dry-run mode, which never rejects a voluntary disruption")
+	flag.BoolVar(&dryRun, "dry-run", false,
+		"run the admission controller in dry-run mode, which never rejects a voluntary disruption",
+	)
 	opts := zap.Options{
 		Development: true,
 	}
@@ -187,7 +194,7 @@ func main() {
 		}
 	}
 
-	//+kubebuilder:scaffold:builder
+	// +kubebuilder:scaffold:builder
 	if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {
 		setupLog.Error(err, "unable to set up health check")
 		os.Exit(1)

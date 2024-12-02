@@ -26,7 +26,6 @@ func runCmd(cmd *exec.Cmd) ([]byte, error) {
 
 	cmd.Env = append(os.Environ(), "GO111MODULE=on")
 	command := strings.Join(cmd.Args, " ")
-	//fmt.Fprintf(GinkgoWriter, "running: %s\n", command)
 	fmt.Printf("running: %s\n\n", command)
 	output, err := cmd.CombinedOutput()
 	if err != nil {

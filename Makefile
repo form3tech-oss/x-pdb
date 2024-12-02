@@ -28,7 +28,6 @@ KIND_CLUSTER_NAME  ?= x-pdb-$(CLUSTER)
 PROTO_FILES := $(wildcard protos/**/*.proto)
 PROTO_GO_OUT_DIR := pkg
 
-
 # Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
 ifeq (,$(shell go env GOBIN))
 GOBIN=$(shell go env GOPATH)/bin

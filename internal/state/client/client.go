@@ -115,7 +115,6 @@ func (p *ClientPool) newClient(endpoint string) (statepb.StateClient, error) {
 			),
 		),
 	)
-
 	if err != nil {
 		return nil, err
 	}
