@@ -1,12 +1,12 @@
 syntax = "proto3";
 
-package state;
+package state.v1;
 
-option go_package = "github.com/form3tech-oss/x-pdb/pkg/protos/state";
+option go_package = "github.com/form3tech-oss/x-pdb/pkg/proto/state";
 
 // State is the service that allows x-pdb servers to talk with
 // each other.
-service State {
+service StateService {
   // Acquires a lock on the local cluster using the specified leaseHolderIdentity.
   rpc Lock(LockRequest) returns (LockResponse) {}
 
@@ -20,14 +20,14 @@ service State {
 // LockRequest has the information to request a xpdb to be
 // locked on a cluster.
 message LockRequest {
-  // The leaseHolderIdentity of the lock that is going to be created on the cluster.
-  string leaseHolderIdentity = 1;
+  // The lease_holder_identity of the lock that is going to be created on the cluster.
+  string lease_holder_identity = 1;
 
   // Namespace of the xpdb to be locked.
   string namespace = 2;
 
   // LabelSelector used on the xpdb resource to be locked.
-  LabelSelector labelSelector = 3;
+  LabelSelector label_selector = 3;
 }
 
 // LockResponse has the information on wether a lock was succeeded or not.
@@ -42,13 +42,13 @@ message LockResponse {
 // UnlockRequest has the information to request a xpdb to be unlocked.
 message UnlockRequest {
   // The leaseHolderIdentity of the lock that is going to be deleted on the cluster.
-  string leaseHolderIdentity = 1;
+  string lease_holder_identity = 1;
 
   // Namespace of the xpdb to be unlocked.
   string namespace = 2;
 
   // LabelSelector used on the xpdb resource to be locked.
-  LabelSelector labelSelector = 3;
+  LabelSelector label_selector = 3;
 }
 
 // LockResponse has the information on wether an unlock was succeeded or not.
@@ -66,13 +66,13 @@ message GetStateRequest {
   string namespace = 1;
 
   // LabelSelector of the xpdb to get the state from.
-  LabelSelector labelSelector = 2;
+  LabelSelector label_selector = 2;
 }
 
 // Response of the GetState
 message GetStateResponse {
   // Number of desired healthy pods captured by a xpdb label selector
-  int32 desiredHealthy = 1;
+  int32 desired_healthy = 1;
 
   // Number of healthy pods captured by a xpdb label selector
   int32 healthy = 2;
@@ -87,12 +87,12 @@ message LabelSelector {
   // map is equivalent to an element of matchExpressions, whose key field is "key", the
   // operator is "In", and the values array contains only "value". The requirements are ANDed.
   // +optional
-  map<string, string> matchLabels = 1;
+  map<string, string> match_labels = 1;
 
   // matchExpressions is a list of label selector requirements. The requirements are ANDed.
   // +optional
   // +listType=atomic
-  repeated LabelSelectorRequirement matchExpressions = 2;
+  repeated LabelSelectorRequirement match_expressions = 2;
 }
 
 // A label selector requirement is a selector that contains values, a key, and an operator that

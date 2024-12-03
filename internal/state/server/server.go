@@ -30,7 +30,7 @@ import (
 	"github.com/form3tech-oss/x-pdb/internal/converters"
 	"github.com/form3tech-oss/x-pdb/internal/lock"
 	"github.com/form3tech-oss/x-pdb/internal/pdb"
-	statepb "github.com/form3tech-oss/x-pdb/pkg/protos/state"
+	statepb "github.com/form3tech-oss/x-pdb/pkg/proto/state/v1"
 	"github.com/go-logr/logr"
 	grpcprom "github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus"
 	"github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/recovery"
@@ -122,7 +122,7 @@ func (s *Server) Start(ctx context.Context) error {
 			),
 		),
 	)
-	statepb.RegisterStateServer(grpcServer, s.stateServer)
+	statepb.RegisterStateServiceServer(grpcServer, s.stateServer)
 
 	errCh := make(chan error)
 	go func() {
@@ -145,7 +145,7 @@ type stateServer struct {
 	pdbService  *pdb.Service
 	lockService *lock.Service
 	logger      *logr.Logger
-	statepb.UnimplementedStateServer
+	statepb.UnimplementedStateServiceServer
 }
 
 func (s *stateServer) Lock(ctx context.Context, req *statepb.LockRequest) (*statepb.LockResponse, error) {

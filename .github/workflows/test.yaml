@@ -22,9 +22,16 @@ jobs:
         uses: actions/setup-go@41dfa10bad2bb2ae585af6ee5bb4d7d973ad74ed # v5.1.0
         with:
           go-version-file: go.mod
+      - uses: bufbuild/buf-setup-action@v1
+      - uses: bufbuild/buf-lint-action@v1 
+        name: Lint proto
+        id: run-lint-proto
       - name: Lint
         id: run-lint
         run: make lint
+      - name: Check proto
+        id: check-proto
+        run: make check-proto
       - name: Run Go tests
         id: run-tests
         run: make test

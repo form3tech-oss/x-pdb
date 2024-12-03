@@ -1,11 +1,11 @@
 syntax = "proto3";
 
-package disruptionprobe;
+package disruptionprobe.v1;
 
 option go_package = "github.com/x-pdb/pkg/protos/disruptionprobe";
 
 // The DisruptionProbe service definition.
-service DisruptionProbe {
+service DisruptionProbeService {
   // Sends a IsDisruptionAllowed request
   rpc IsDisruptionAllowed(IsDisruptionAllowedRequest) returns (IsDisruptionAllowedResponse) {}
 }

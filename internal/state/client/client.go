@@ -27,7 +27,7 @@ import (
 	"sync"
 
 	"github.com/form3tech-oss/x-pdb/internal/metrics"
-	statepb "github.com/form3tech-oss/x-pdb/pkg/protos/state"
+	statepb "github.com/form3tech-oss/x-pdb/pkg/proto/state/v1"
 	"github.com/go-logr/logr"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
@@ -35,7 +35,7 @@ import (
 )
 
 type ClientPool struct {
-	clients  map[string]statepb.StateClient
+	clients  map[string]statepb.StateServiceClient
 	mux      *sync.Mutex
 	ctx      context.Context
 	logger   *logr.Logger
@@ -52,11 +52,11 @@ func NewClientPool(
 		mux:      &sync.Mutex{},
 		logger:   logger,
 		certsDir: certsDir,
-		clients:  map[string]statepb.StateClient{},
+		clients:  map[string]statepb.StateServiceClient{},
 	}
 }
 
-func (p *ClientPool) Get(endpoint string) (statepb.StateClient, error) {
+func (p *ClientPool) Get(endpoint string) (statepb.StateServiceClient, error) {
 	p.mux.Lock()
 	defer p.mux.Unlock()
 
@@ -74,7 +74,7 @@ func (p *ClientPool) Get(endpoint string) (statepb.StateClient, error) {
 	return c, nil
 }
 
-func (p *ClientPool) newClient(endpoint string) (statepb.StateClient, error) {
+func (p *ClientPool) newClient(endpoint string) (statepb.StateServiceClient, error) {
 	cw, err := certwatcher.New(path.Join(p.certsDir, "tls.crt"), path.Join(p.certsDir, "tls.key"))
 	if err != nil {
 		return nil, fmt.Errorf("error creating cert watcher: %w", err)
@@ -119,5 +119,5 @@ func (p *ClientPool) newClient(endpoint string) (statepb.StateClient, error) {
 		return nil, err
 	}
 
-	return statepb.NewStateClient(conn), nil
+	return statepb.NewStateServiceClient(conn), nil
 }

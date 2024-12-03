@@ -24,7 +24,7 @@ import (
 
 	"github.com/form3tech-oss/x-pdb/internal/converters"
 	stateclient "github.com/form3tech-oss/x-pdb/internal/state/client"
-	statepb "github.com/form3tech-oss/x-pdb/pkg/protos/state"
+	statepb "github.com/form3tech-oss/x-pdb/pkg/proto/state/v1"
 	"github.com/go-logr/logr"
 	"github.com/sourcegraph/conc/pool"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"

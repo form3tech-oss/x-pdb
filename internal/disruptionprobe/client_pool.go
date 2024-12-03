@@ -10,14 +10,14 @@ import (
 	"sync"
 
 	"github.com/form3tech-oss/x-pdb/internal/metrics"
-	disruptionprobepb "github.com/form3tech-oss/x-pdb/pkg/protos/disruptionprobe"
+	disruptionprobepb "github.com/form3tech-oss/x-pdb/pkg/proto/disruptionprobe/v1"
 	"github.com/go-logr/logr"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 )
 
 type ClientPool struct {
-	clients  map[string]disruptionprobepb.DisruptionProbeClient
+	clients  map[string]disruptionprobepb.DisruptionProbeServiceClient
 	mux      *sync.Mutex
 	ctx      context.Context
 	logger   *logr.Logger
@@ -31,14 +31,14 @@ func NewClientPool(
 ) *ClientPool {
 	return &ClientPool{
 		certsDir: certsDir,
-		clients:  make(map[string]disruptionprobepb.DisruptionProbeClient),
+		clients:  make(map[string]disruptionprobepb.DisruptionProbeServiceClient),
 		ctx:      ctx,
 		mux:      &sync.Mutex{},
 		logger:   logger,
 	}
 }
 
-func (p *ClientPool) Get(endpoint string) (disruptionprobepb.DisruptionProbeClient, error) {
+func (p *ClientPool) Get(endpoint string) (disruptionprobepb.DisruptionProbeServiceClient, error) {
 	p.mux.Lock()
 	defer p.mux.Unlock()
 
@@ -56,7 +56,7 @@ func (p *ClientPool) Get(endpoint string) (disruptionprobepb.DisruptionProbeClie
 	return c, nil
 }
 
-func (p *ClientPool) newClient(endpoint string) (disruptionprobepb.DisruptionProbeClient, error) {
+func (p *ClientPool) newClient(endpoint string) (disruptionprobepb.DisruptionProbeServiceClient, error) {
 	certPool := x509.NewCertPool()
 
 	p.logger.Info("certs dir", "certsdir", p.certsDir)
@@ -89,5 +89,5 @@ func (p *ClientPool) newClient(endpoint string) (disruptionprobepb.DisruptionPro
 		return nil, err
 	}
 
-	return disruptionprobepb.NewDisruptionProbeClient(conn), nil
+	return disruptionprobepb.NewDisruptionProbeServiceClient(conn), nil
 }

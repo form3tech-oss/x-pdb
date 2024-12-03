@@ -6,7 +6,7 @@ import (
 	"time"
 
 	xpdbv1alpha1 "github.com/form3tech-oss/x-pdb/api/v1alpha1"
-	"github.com/form3tech-oss/x-pdb/pkg/protos/disruptionprobe"
+	disruptionprobepb "github.com/form3tech-oss/x-pdb/pkg/proto/disruptionprobe/v1"
 	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
 )
@@ -38,7 +38,7 @@ func (s *Service) CanPodBeDisrupted(ctx context.Context, pod *corev1.Pod, xpdb *
 		return false, err
 	}
 
-	req := &disruptionprobe.IsDisruptionAllowedRequest{
+	req := &disruptionprobepb.IsDisruptionAllowedRequest{
 		PodName:       pod.Name,
 		PodNamespace:  pod.Namespace,
 		XpdbName:      xpdb.Name,

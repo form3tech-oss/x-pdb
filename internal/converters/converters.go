@@ -1,7 +1,7 @@
 package converters
 
 import (
-	statepb "github.com/form3tech-oss/x-pdb/pkg/protos/state"
+	statepb "github.com/form3tech-oss/x-pdb/pkg/proto/state/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/ptr"
 )

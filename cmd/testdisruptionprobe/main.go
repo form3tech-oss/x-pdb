@@ -15,7 +15,7 @@ import (
 	"sync"
 	"syscall"
 
-	disruptionprobepb "github.com/form3tech-oss/x-pdb/pkg/protos/disruptionprobe"
+	disruptionprobepb "github.com/form3tech-oss/x-pdb/pkg/proto/disruptionprobe/v1"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
@@ -234,7 +234,7 @@ func (s *server) Start() error {
 			),
 		),
 	)
-	disruptionprobepb.RegisterDisruptionProbeServer(grpcServer, s.srv)
+	disruptionprobepb.RegisterDisruptionProbeServiceServer(grpcServer, s.srv)
 
 	logger.Info(fmt.Sprintf("starting out grpc server on %s", s.listenAddr))
 	errCh := make(chan error)
@@ -256,7 +256,7 @@ func (s *server) Start() error {
 
 type disruptionProbeServer struct {
 	configWatcher *configWatcher
-	disruptionprobepb.UnimplementedDisruptionProbeServer
+	disruptionprobepb.UnimplementedDisruptionProbeServiceServer
 }
 
 func (s *disruptionProbeServer) IsDisruptionAllowed(

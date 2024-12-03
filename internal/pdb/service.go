@@ -23,7 +23,7 @@ import (
 	xpdbv1alpha1 "github.com/form3tech-oss/x-pdb/api/v1alpha1"
 	"github.com/form3tech-oss/x-pdb/internal/converters"
 	stateclient "github.com/form3tech-oss/x-pdb/internal/state/client"
-	statepb "github.com/form3tech-oss/x-pdb/pkg/protos/state"
+	statepb "github.com/form3tech-oss/x-pdb/pkg/proto/state/v1"
 	"github.com/go-logr/logr"
 	"github.com/sourcegraph/conc/pool"
 	corev1 "k8s.io/api/core/v1"
@@ -216,7 +216,7 @@ func (s *Service) disruptionAllowed(xpdb *xpdbv1alpha1.XPodDisruptionBudget, can
 
 func (s *Service) getRemotePodCounts(ctx context.Context, namespace string, selector *metav1.LabelSelector) (remoteDesiredHealthy, remoteHealthy int32, err error) {
 	if len(s.remoteEndpoints) == 0 {
-		return remoteDesiredHealthy, remoteHealthy, err
+		return
 	}
 
 	req := &statepb.GetStateRequest{
@@ -264,7 +264,7 @@ func (s *Service) getRemotePodCounts(ctx context.Context, namespace string, sele
 		remoteDesiredHealthy += res.DesiredHealthy
 		remoteHealthy += res.Healthy
 	}
-	return remoteDesiredHealthy, remoteHealthy, err
+	return
 }
 
 func countHealthyPods(pods []*corev1.Pod) (currentHealthy int32) {
