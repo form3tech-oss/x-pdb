@@ -6,11 +6,6 @@ on:
       - "v*"
 
   workflow_dispatch:
-    inputs:
-      tag:
-        description: 'image tag prefix'
-        default: 'rc'
-        required: true
 
 jobs:
   publish-chart:
