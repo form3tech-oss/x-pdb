@@ -216,7 +216,7 @@ func (s *Service) disruptionAllowed(xpdb *xpdbv1alpha1.XPodDisruptionBudget, can
 
 func (s *Service) getRemotePodCounts(ctx context.Context, namespace string, selector *metav1.LabelSelector) (remoteDesiredHealthy, remoteHealthy int32, err error) {
 	if len(s.remoteEndpoints) == 0 {
-		return
+		return remoteDesiredHealthy, remoteHealthy, err
 	}
 
 	req := &statepb.GetStateRequest{
@@ -264,7 +264,7 @@ func (s *Service) getRemotePodCounts(ctx context.Context, namespace string, sele
 		remoteDesiredHealthy += res.DesiredHealthy
 		remoteHealthy += res.Healthy
 	}
-	return
+	return remoteDesiredHealthy, remoteHealthy, err
 }
 
 func countHealthyPods(pods []*corev1.Pod) (currentHealthy int32) {
