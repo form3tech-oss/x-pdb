@@ -40,7 +40,7 @@ jobs:
       - name: Push chart to GHCR
         id: push
         run: |
-          helm push ${{ env.CHART_FILE }} oci://${{ env.REGISTRY }}/${{ github.repository }}/charts
+          helm push ${{ steps.package.outputs.chart_file }} oci://${{ env.REGISTRY }}/${{ github.repository }}/charts
           DIGEST=$(helm inspect chart oci://${{ env.REGISTRY }}/${{ github.repository }}/charts/${{ steps.package.outputs.chart_file }} --show-values=false | sha256sum | cut -d' ' -f1)
           echo "image=${{ env.REGISTRY }}/${{ github.repository }}/charts/${{ steps.package.outputs.chart_file }}" >> $GITHUB_OUTPUT
           echo "digest=$DIGEST" >> $GITHUB_OUTPUT
@@ -48,7 +48,7 @@ jobs:
         uses: sigstore/cosign-installer@dc72c7d5c4d10cd6bcb8cf6e3fd625a9e5e537da # v3.7.0
       - name: Sign Helm Chart Image
         run: |
-          cosign sign --yes "oci://${{ env.REGISTRY }}/${{ github.repository }}/charts/${{ env.CHART_FILE }}@${{ steps.push.outputs.digest }}"
+          cosign sign --yes "oci://${{ env.REGISTRY }}/${{ github.repository }}/charts/${{ steps.package.outputs.chart_file }}@${{ steps.push.outputs.digest }}"
 
   ghcr-provenance:
     needs: [publish-chart]
