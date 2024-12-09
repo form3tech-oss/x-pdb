@@ -6,8 +6,7 @@ on:
       - main
     tags:
       - "**"
-      # Temporary disabled
-      # pull_request:
+  pull_request:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}

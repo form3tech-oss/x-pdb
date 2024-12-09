@@ -23,7 +23,6 @@ jobs:
         with:
           fetch-depth: 0
           ref: ${{ github.event.inputs.source_ref }}
-
       - name: Create Release
         uses: softprops/action-gh-release@01570a1f39cb168c169c802c3bceb9e93fb10974 # v2.1.0
         with:

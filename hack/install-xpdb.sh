@@ -35,7 +35,7 @@ if [[ -z "$this_address" ]]; then
   exit 1
 fi
 
-helm upgrade -i x-pdb ./helm \
+helm upgrade -i x-pdb ./charts/x-pdb \
   -f "hack/env/xpdb-values.yaml" \
   --set controller.clusterID="${CLUSTER}" \
   --set controller.remoteEndpoints="$remote_endpoints" \
