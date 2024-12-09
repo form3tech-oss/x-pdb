@@ -48,18 +48,10 @@ jobs:
       - name: Sign Helm Chart Image
         run: |
           cosign sign --yes "${{ env.REGISTRY }}/${{ github.repository }}/charts/x-pdb@${{ steps.push.outputs.digest }}"
-
-  ghcr-provenance:
-    needs: [publish-chart]
-    permissions:
-      actions: read # for detecting the Github Actions environment.
-      id-token: write # for creating OIDC tokens for signing.
-      packages: write # for uploading attestations.
-    if: startsWith(github.ref, 'refs/tags/v')
-    uses: slsa-framework/slsa-github-generator/.github/workflows/generator_container_slsa3.yml@5a775b367a56d5bd118a224a811bba288150a563 # v2.0.0
-    with:
-      image: ${{ needs.publish-chart.outputs.image }}
-      digest: ${{ needs.publish-chart.outputs.digest }}
-      registry-username: ${{ github.actor }}
-    secrets:
-      registry-password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Attest
+        uses: actions/attest-build-provenance@c4fbc648846ca6f503a13a2281a5e7b98aa57202 # v2.0.1
+        id: attest
+        with:
+          subject-name: ${{ env.REGISTRY }}/${{ github.repository }}/charts/x-pdb
+          subject-digest: ${{ steps.push.outputs.digest }}
+          push-to-registry: true
