@@ -1,0 +1,44 @@
+name: Test
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - "**"
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Setup Golang
+        uses: actions/setup-go@41dfa10bad2bb2ae585af6ee5bb4d7d973ad74ed # v5.1.0
+        with:
+          go-version-file: go.mod
+      - uses:  bufbuild/buf-action@v1
+        name: Buf check proto
+        id: run-check-proto
+        with:
+          breaking: false
+          pr_comment: false
+      - name: Lint
+        id: run-lint
+        run: make lint
+      - name: Run Go tests
+        id: run-tests
+        run: make test
+      - name: Run E2E tests
+        id: run-e2e-tests
+        run: |
+          make multi-cluster
+          make deploy-e2e
+          make e2e

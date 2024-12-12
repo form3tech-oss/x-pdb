@@ -1,0 +1,25 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: {{ include "test-disruption-probe.fullname" . }}
+spec:
+  duration: 2000h0m0s
+  dnsNames:
+  - "test-disruption-probe"
+  - "test-disruption-probe.{{ .Release.Namespace }}"
+  - "test-disruption-probe.{{ .Release.Namespace }}.svc"
+  - "test-disruption-probe.{{ .Release.Namespace }}.svc.cluster.local"
+  issuerRef:
+    kind: ClusterIssuer
+    name: cluster-issuer
+  privateKey:
+    algorithm: RSA
+    encoding: PKCS1
+    size: 2048
+  renewBefore: 1000h0m0s
+  secretName: {{ include "test-disruption-probe.fullname" . }}-cert
+  usages:
+  - digital signature
+  - key encipherment
+  - client auth
+  - server auth

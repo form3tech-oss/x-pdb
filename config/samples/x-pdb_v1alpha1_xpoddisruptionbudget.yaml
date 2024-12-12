@@ -1,0 +1,9 @@
+apiVersion: x-pdb.form3.tech/v1alpha1
+kind: XPodDisruptionBudget
+metadata:
+  labels:
+    app.kubernetes.io/name: x-pdb
+    app.kubernetes.io/managed-by: kustomize
+  name: xpoddisruptionbudget-sample
+spec:
+  # TODO(user): Add fields here

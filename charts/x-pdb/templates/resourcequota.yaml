@@ -1,0 +1,17 @@
+{{- if .Values.resourceQuota.enabled }}
+---
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: x-pdb-resource-quota
+  namespace: {{ .Release.Namespace }}
+spec:
+  hard:
+    pods: {{ .Values.resourceQuota.hard.pods | quote }}
+  scopeSelector:
+    matchExpressions:
+      - operator: In
+        scopeName: PriorityClass
+        values:
+          - system-cluster-critical
+{{- end }}

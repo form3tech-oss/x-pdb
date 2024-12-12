@@ -1,0 +1,21 @@
+FROM golang:1.23 AS builder
+
+WORKDIR /workspace
+
+COPY go.mod go.mod
+COPY go.sum go.sum
+COPY vendor/ vendor/
+RUN go mod verify
+
+COPY api/ api/
+COPY cmd/testapp cmd/testapp
+COPY internal/ internal/
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -o testapp cmd/testapp/main.go
+
+FROM gcr.io/distroless/static:nonroot
+WORKDIR /
+COPY --from=builder /workspace/testapp .
+USER 65532:65532
+
+ENTRYPOINT ["/testapp"]
+
