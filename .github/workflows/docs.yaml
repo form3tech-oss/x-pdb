@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - mj-deploy-docs
 
 permissions:
   contents: read
