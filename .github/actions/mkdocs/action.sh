@@ -31,20 +31,29 @@ fi
 git config --global user.name "$GITHUB_ACTOR"
 git config --global user.email "$GITHUB_ACTOR@users.noreply.github.com"
 
-mkdocs build --config-file "${GITHUB_WORKSPACE}/docs/mkdocs.yml"
+docs_site_tmp_dir=$(mktemp -d)
+cd docs && mkdocs build --config-file "${GITHUB_WORKSPACE}/docs/mkdocs.yml" -d "${docs_site_tmp_dir}"
 
-git clone --branch=gh-pages --depth=1 "${remote_repo}" gh-pages
-cd gh-pages
+gh_pages_tmp_dir=$(mktemp -d)
+
+cd $gh_pages_tmp_dir
+git clone --branch=gh-pages --depth=1 "${remote_repo}" .
 
 # copy current index file index.yaml before any change
 temp_worktree=$(mktemp -d)
-cp --force "index.yaml" "$temp_worktree/index.yaml"
+if [ -f "index.yaml" ]; then
+    cp --force "index.yaml" "$temp_worktree/index.yaml"
+fi
 # remove current content in branch gh-pages
 git rm -r .
 # copy new doc.
-cp -r ../site/* .
+cp -r "${docs_site_tmp_dir}"/* .
+
 # restore chart index
-cp "$temp_worktree/index.yaml" .
+if [ -f "index.yaml" ]; then
+    cp "$temp_worktree/index.yaml" .
+fi
+
 # commit changes
 git add .
 git commit -m "Deploy GitHub Pages"
