@@ -3,7 +3,7 @@ repo_name: "form3tech-oss/x-pdb"
 repo_url: https://github.com/form3tech-oss/x-pdb
 site_url: https://form3tech-oss.github.io/x-pdb
 edit_uri: edit/main/docs/src
-docs_dir: "/docs/src"
+docs_dir: "src"
 
 # Extensions
 markdown_extensions:
@@ -62,8 +62,6 @@ plugins:
   - awesome-pages
   - minify:
       minify_html: true
-
-extra_css: [extra.css]
 
 nav:
   - Introduction:
