@@ -75,14 +75,3 @@ Create the name of the service account to use
 {{- default "default" .Values.serviceAccount.name }}
 {{- end }}
 {{- end }}
-
-{{/*
-Creates an image name from the image structure available in the values file
-*/}}
-{{- define "x-pdb.image" -}}
-{{- if .registry }}
-  {{- print .registry "/" (required "An image repository is required" .repository) ":" .tag -}}
-{{- else }}
-  {{- print (required "An image repository is required" .repository) ":" .tag -}}
-{{- end }}
-{{- end }}

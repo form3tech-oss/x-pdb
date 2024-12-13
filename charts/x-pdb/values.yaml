@@ -1,11 +1,11 @@
 replicaCount: 2
 
 image:
-  registry: tech.form3
-  repository: x-pdb
+  registry: ghcr.io 
+  repository: form3tech-oss/x-pdb
   pullPolicy: IfNotPresent
   # Overrides the image tag whose default is the chart appVersion.
-  tag: "latest"
+  tag: ""
 
 imagePullSecrets: []
 nameOverride: ""

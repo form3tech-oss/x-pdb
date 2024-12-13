@@ -3,7 +3,7 @@
 ##########
 
 # Image names
-IMG                       ?= x-pdb:latest
+IMG                       ?= ghcr.io/form3tech-oss/x-pdb:latest
 TEST_APP_IMG              ?= x-pdb-test:latest
 TEST_DISRUPTION_PROBE_IMG ?= x-pdb-test-disruption-probe:latest
 
@@ -127,6 +127,10 @@ lint: golangci-lint ## Run golangci-lint linter
 lint-fix: golangci-lint ## Run golangci-lint linter and perform fixes
 	$(GOLANGCI_LINT) run --fix
 
+.PHONY: helm-lint
+helm-lint: # Lints the x-pdb helm chartk
+	helm lint charts/x-pdb
+
 ##@ Build
 
 .PHONY: build
@@ -220,10 +224,12 @@ install: kind-load ## Installs x-pdb into a cluster
 
 .PHONY: proto-generate
 proto-generate: ## Generates the go packages from the proto contracts.
-	protoc --go_out=$(PROTO_GO_OUT_DIR) --go_opt=paths=source_relative \
-	--go-grpc_out=$(PROTO_GO_OUT_DIR) --go-grpc_opt=paths=source_relative \
-	$(PROTO_FILES)
+	buf generate
 
+.PHONY: proto-lint
+proto-lint: ## Lints the proto contracts
+	buf lint
+	
 ##@ Dependencies
 
 ## Location to install dependencies to
