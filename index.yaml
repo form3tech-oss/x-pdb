@@ -1,0 +1,13 @@
+apiVersion: v1
+entries:
+  x-pdb:
+  - apiVersion: v2
+    created: "2024-12-13T19:18:52.00901052Z"
+    description: A Helm chart for Kubernetes
+    digest: 880d24d10189db1ebdf1ac6d11e26c0776968ea808c0a932b95c15357040f545
+    name: x-pdb
+    type: application
+    urls:
+    - https://form3tech-oss.github.io/x-pdb/x-pdb-0.0.1.tgz
+    version: 0.0.1
+generated: "2024-12-13T19:18:52.007286582Z"
