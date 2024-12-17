@@ -33,6 +33,9 @@ jobs:
       - name: Lint
         id: run-lint
         run: make lint
+      - name: Helm Lint
+        id: helm-lint
+        run: make helm-lint
       - name: Run Go tests
         id: run-tests
         run: make test

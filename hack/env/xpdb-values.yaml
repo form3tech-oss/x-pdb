@@ -27,6 +27,4 @@ service:
     type: LoadBalancer
     # loadBalancerIP computed dynamically via install-xpdb.sh
 image:
-  registry: ""
-  repository: "x-pdb"
   tag: "latest"

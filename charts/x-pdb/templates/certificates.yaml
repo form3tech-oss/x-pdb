@@ -1,4 +1,4 @@
-{{- if .Values.webhook.tls.certManager.enabled -}}
+{{- if .Values.webhook.tls.certManager.enabled }}
 ---
 apiVersion: cert-manager.io/v1
 kind: Certificate
@@ -26,8 +26,9 @@ spec:
     encoding: PKCS1
     size: 2048
 {{- end }}
+
+{{- if .Values.controller.tls.certManager.enabled }}
 ---
-{{- if .Values.controller.tls.certManager.enabled -}}
 apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:

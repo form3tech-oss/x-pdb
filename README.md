@@ -8,6 +8,7 @@ This is needed, because each cluster acts individually (evictions, rolling out u
 Please refer to the documentation at https://form3tech-oss.github.com/x-pdb
 
 ## Development
+
 ### Running tests
 
 Simple tests can be ran with `make test`.
@@ -17,6 +18,7 @@ This will create three `kind` clusters which are connected through `metallb`.
 
 ```
 make multi-cluster
+make deploy-e2e
 make e2e
 ```
 
