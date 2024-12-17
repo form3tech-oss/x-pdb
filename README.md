@@ -5,7 +5,7 @@ X-PDB allows you to define multi-cluster PodDisruptionBudgets and blocks evictio
 This allows you to operate stateful workloads spanning multiple clusters and limit disruptions to a necessary minimum.
 This is needed, because each cluster acts individually (evictions, rolling out updates etc) which may cause service disruptions simultaneously across clusters.
 
-Please refer to the documentation at https://form3tech-oss.github.com/x-pdb
+Please refer to the documentation at https://form3tech-oss.github.io/x-pdb
 
 ## Development
 
