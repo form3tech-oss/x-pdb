@@ -20,13 +20,17 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-// The request message containing the user's name.
+// IsDisruptionAllowedRequest has the information to request a check for disruption.
 type IsDisruptionAllowedRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	PodName       string                 `protobuf:"bytes,1,opt,name=pod_name,json=podName,proto3" json:"pod_name,omitempty"`
-	PodNamespace  string                 `protobuf:"bytes,2,opt,name=pod_namespace,json=podNamespace,proto3" json:"pod_namespace,omitempty"`
-	XpdbName      string                 `protobuf:"bytes,3,opt,name=xpdb_name,json=xpdbName,proto3" json:"xpdb_name,omitempty"`
-	XpdbNamespace string                 `protobuf:"bytes,4,opt,name=xpdb_namespace,json=xpdbNamespace,proto3" json:"xpdb_namespace,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The name of the pod that is being disrupted.
+	PodName string `protobuf:"bytes,1,opt,name=pod_name,json=podName,proto3" json:"pod_name,omitempty"`
+	// The namespaces of the pod that is being disrupted.
+	PodNamespace string `protobuf:"bytes,2,opt,name=pod_namespace,json=podNamespace,proto3" json:"pod_namespace,omitempty"`
+	// The name of the XPodDisruptionBudget resource that was protecting the pod.
+	XpdbName string `protobuf:"bytes,3,opt,name=xpdb_name,json=xpdbName,proto3" json:"xpdb_name,omitempty"`
+	// The namespace of the XPodDisruptionBudget resource that was protecting the pod.
+	XpdbNamespace string `protobuf:"bytes,4,opt,name=xpdb_namespace,json=xpdbNamespace,proto3" json:"xpdb_namespace,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -89,11 +93,13 @@ func (x *IsDisruptionAllowedRequest) GetXpdbNamespace() string {
 	return ""
 }
 
-// The response message containing the greetings
+// IsDisruptionAllowedRespobse has the information on wether a disruption is allowed or not.
 type IsDisruptionAllowedResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	IsAllowed     bool                   `protobuf:"varint,1,opt,name=is_allowed,json=isAllowed,proto3" json:"is_allowed,omitempty"`
-	Error         string                 `protobuf:"bytes,2,opt,name=error,proto3" json:"error,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Information on wether disruption is allowed.
+	IsAllowed bool `protobuf:"varint,1,opt,name=is_allowed,json=isAllowed,proto3" json:"is_allowed,omitempty"`
+	// Error information on why a disruption is not allowed.
+	Error         string `protobuf:"bytes,2,opt,name=error,proto3" json:"error,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }

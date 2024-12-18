@@ -5,24 +5,23 @@ X-PDB allows you to define multi-cluster PodDisruptionBudgets and blocks evictio
 This allows you to operate stateful workloads spanning multiple clusters and limit disruptions to a necessary minimum.
 This is needed, because each cluster acts individually (evictions, rolling out updates etc) which may cause service disruptions simultaneously across clusters.
 
-Please refer to the documentation at https://form3tech-oss.github.io/x-pdb
+## 📙Documentation
 
-## Development
+X-PDB installation and reference documents are available at https://form3tech-oss.github.io/x-pdb.
 
-### Running tests
+👉 [Overview](https://form3tech-oss.github.io/x-pdb)
 
-Simple tests can be ran with `make test`.
+👉 [Getting Started](https://form3tech-oss.github.io/x-pdb/getting-started)
 
-Integration tests can be ran with the following commands.
-This will create three `kind` clusters which are connected through `metallb`.
+👉 [Configure X-PDB Resources](https://form3tech-oss.github.io/x-pdb/configuring-xpdb)
 
-```
-make multi-cluster
-make deploy-e2e
-make e2e
-```
+## Contributing
 
-The e2e tests deploy a test pod which allows us to control their readiness probe, see `cmd/testapp` for details.
+👉 [Developer Guide](https://form3tech-oss.github.io/x-pdb/developer-guide)
 
-When developing `x-pdb` e2e tests you need to re-build and deploy the Pod using `make deploy`.
+👉 [Code of Conduct](https://form3tech-oss.github.io/x-pdb/code-of-conduct)
+
+## License
+
+X-PDB is licensed under the [Apache License 2.0](./LICENSE).
 

@@ -224,12 +224,20 @@ install: kind-load ## Installs x-pdb into a cluster
 
 .PHONY: proto-generate
 proto-generate: ## Generates the go packages from the proto contracts.
-	buf generate
+	@buf generate
 
 .PHONY: proto-lint
 proto-lint: ## Lints the proto contracts
-	buf lint
-	
+	@buf lint
+
+.PHONY: proto-fmt
+proto-fmt: ## Formats the proto contracts
+	@buf format -w
+
+.PHONY: proto-breaking
+proto-breaking: ## Verifies if there are beaking changes in the proto contracts
+	@buf breaking --against 'https://github.com/form3tech-oss/x-pdb.git'
+
 ##@ Dependencies
 
 ## Location to install dependencies to

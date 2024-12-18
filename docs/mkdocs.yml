@@ -52,10 +52,22 @@ theme:
     - navigation.sections
 
   palette:
-    primary: "deep orange"
-    accent: "indigo"
+    primary: custom
 
-  include_sidebar: true
+  palette: 
+    # Palette toggle for light mode
+    - scheme: default
+      primary: teal
+      toggle:
+        icon: material/brightness-7 
+        name: Switch to dark mode
+
+    # Palette toggle for dark mode
+    - scheme: slate
+      primary: teal
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
 
 plugins:
   - search
@@ -67,9 +79,13 @@ nav:
   - Introduction:
       - Overview: "index.md"
       - Getting Started: "getting-started.md"
-  - Configuring x-pdb:
+  - Configuring X-PDB:
       - XPodDisruptionBudget: "configuring-xpdb.md"
       - Disruption Probes: "configuring-disruption-probes.md"
-  - Operating x-pdb:
+  - Operating X-PDB:
       - Failure Scenarios: "failure-scenarios.md"
       - Metrics & SLOs: "metrics-slos.md"
+  - Contributing:
+      - Developer Guide: "developer-guide.md"
+      - Release Process: "release.md"
+      - Code of Conduct: "code-of-conduct.md"
