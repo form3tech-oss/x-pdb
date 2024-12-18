@@ -24,4 +24,3 @@ X-PDB installation and reference documents are available at https://form3tech-os
 ## License
 
 X-PDB is licensed under the [Apache License 2.0](./LICENSE).
-

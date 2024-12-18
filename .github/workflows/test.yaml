@@ -26,19 +26,17 @@ jobs:
           go-version-file: go.mod
       - uses:  bufbuild/buf-action@v1
         name: Buf check proto
-        id: run-check-proto
         with:
           breaking: false
           pr_comment: false
       - name: Lint
-        id: run-lint
         run: make lint
       - name: Helm Lint
-        id: helm-lint
         run: make helm-lint
       - name: Run Go tests
-        id: run-tests
         run: make test
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd #v3.1.2
       - name: Run E2E tests
         id: run-e2e-tests
         run: |
