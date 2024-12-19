@@ -35,8 +35,6 @@ jobs:
         run: make helm-lint
       - name: Run Go tests
         run: make test
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd #v3.1.2
       - name: Run E2E tests
         id: run-e2e-tests
         run: |
