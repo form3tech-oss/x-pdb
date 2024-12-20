@@ -2,32 +2,47 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
          <loc>https://form3tech-oss.github.io/x-pdb/</loc>
-         <lastmod>2024-12-13</lastmod>
+         <lastmod>2024-12-20</lastmod>
+         <changefreq>daily</changefreq>
+    </url>
+    <url>
+         <loc>https://form3tech-oss.github.io/x-pdb/code-of-conduct/</loc>
+         <lastmod>2024-12-20</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://form3tech-oss.github.io/x-pdb/configuring-disruption-probes/</loc>
-         <lastmod>2024-12-13</lastmod>
+         <lastmod>2024-12-20</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://form3tech-oss.github.io/x-pdb/configuring-xpdb/</loc>
-         <lastmod>2024-12-13</lastmod>
+         <lastmod>2024-12-20</lastmod>
+         <changefreq>daily</changefreq>
+    </url>
+    <url>
+         <loc>https://form3tech-oss.github.io/x-pdb/developer-guide/</loc>
+         <lastmod>2024-12-20</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://form3tech-oss.github.io/x-pdb/failure-scenarios/</loc>
-         <lastmod>2024-12-13</lastmod>
+         <lastmod>2024-12-20</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://form3tech-oss.github.io/x-pdb/getting-started/</loc>
-         <lastmod>2024-12-13</lastmod>
+         <lastmod>2024-12-20</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://form3tech-oss.github.io/x-pdb/metrics-slos/</loc>
-         <lastmod>2024-12-13</lastmod>
+         <lastmod>2024-12-20</lastmod>
+         <changefreq>daily</changefreq>
+    </url>
+    <url>
+         <loc>https://form3tech-oss.github.io/x-pdb/release/</loc>
+         <lastmod>2024-12-20</lastmod>
          <changefreq>daily</changefreq>
     </url>
 </urlset>
