@@ -23,13 +23,13 @@ Example use-cases:
 apiVersion: x-pdb.form3.tech/v1alpha1
 kind: XPodDisruptionBudget
 metadata:
-  name: kube-dns
-  namespace: kube-system
+  name: opensearch
+  namespace: opensearch
 spec:
   minAvailable: 80%
   selector:
     matchLabels:
-      k8s-app: kube-dns
+      k8s-app: opensearch
   probe:
     endpoint: opensearch-disruption-probe.opensearch.svc.cluster.local:8080
 ```
@@ -43,24 +43,36 @@ At this point, the communication between x-pdb and the probe server does not use
 The DisruptionProbe server allows the client to ask if a disruption for a given pod and XPDB resource is allowed.
 
 ```proto
-service DisruptionProbe {
-  // Sends a IsDisruptionAllowed request
+// The DisruptionProbe service definition.
+service DisruptionProbeService {
+  // Sends a IsDisruptionAllowed request which will check if a given Pod
+  // can be disrupted according to some specific rules.
   rpc IsDisruptionAllowed(IsDisruptionAllowedRequest) returns (IsDisruptionAllowedResponse) {}
 }
 
-// The request message containing the user's name.
+// IsDisruptionAllowedRequest has the information to request a check for disruption.
 message IsDisruptionAllowedRequest {
+  // The name of the pod that is being disrupted.
   string pod_name = 1;
+
+  // The namespaces of the pod that is being disrupted.
   string pod_namespace = 2;
+
+  // The name of the XPodDisruptionBudget resource that was protecting the pod.
   string xpdb_name = 3;
+
+  // The namespace of the XPodDisruptionBudget resource that was protecting the pod.
   string xpdb_namespace = 4;
 }
 
-// The response message containing the greetings
+// IsDisruptionAllowedRespobse has the information on wether a disruption is allowed or not.
 message IsDisruptionAllowedResponse {
+  // Information on wether disruption is allowed.
   bool is_allowed = 1;
+
+  // Error information on why a disruption is not allowed.
   string error = 2;
 }
-
 ```
 
+You can check for a sample implementation on `cmd/testdisruptionprobe/main.go`.

@@ -20,4 +20,4 @@ live-docs: build-image ## Build and launch a local copy of the documentation web
 		-v ${PWD}:/docs \
 		--entrypoint /bin/bash   \
 		xpdb-docs \
-		-c "pip install -r /docs/requirements.txt && mkdocs serve --dev-addr=0.0.0.0:8000"
+		-c "pip install -r /docs/requirements.txt && mkdocs serve --watch-theme --dev-addr=0.0.0.0:8000"

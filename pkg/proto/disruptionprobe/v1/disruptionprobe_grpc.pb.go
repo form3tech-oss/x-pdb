@@ -28,7 +28,8 @@ const (
 //
 // The DisruptionProbe service definition.
 type DisruptionProbeServiceClient interface {
-	// Sends a IsDisruptionAllowed request
+	// Sends a IsDisruptionAllowed request which will check if a given Pod
+	// can be disrupted according to some specific rules.
 	IsDisruptionAllowed(ctx context.Context, in *IsDisruptionAllowedRequest, opts ...grpc.CallOption) (*IsDisruptionAllowedResponse, error)
 }
 
@@ -56,7 +57,8 @@ func (c *disruptionProbeServiceClient) IsDisruptionAllowed(ctx context.Context, 
 //
 // The DisruptionProbe service definition.
 type DisruptionProbeServiceServer interface {
-	// Sends a IsDisruptionAllowed request
+	// Sends a IsDisruptionAllowed request which will check if a given Pod
+	// can be disrupted according to some specific rules.
 	IsDisruptionAllowed(context.Context, *IsDisruptionAllowedRequest) (*IsDisruptionAllowedResponse, error)
 	mustEmbedUnimplementedDisruptionProbeServiceServer()
 }

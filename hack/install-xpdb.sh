@@ -13,7 +13,7 @@ source ./hack/common.sh
 this_address=""
 remote_endpoints=""
 for i in 1 2 3; do
-  METALLB_HOST_MIN=$(metallb_host_min $i)
+  METALLB_HOST_MIN=$(x_pdb_address $i)
   if [[ "$i" -eq "$CLUSTER" ]]; then
     this_address="$METALLB_HOST_MIN"
     continue
