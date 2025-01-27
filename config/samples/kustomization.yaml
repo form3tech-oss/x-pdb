@@ -1,4 +1,0 @@
-## Append samples of your project ##
-resources:
-- x-pdb_v1alpha1_xpoddisruptionbudget.yaml
-# +kubebuilder:scaffold:manifestskustomizesamples
