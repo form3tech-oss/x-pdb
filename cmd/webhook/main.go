@@ -28,7 +28,6 @@ import (
 	"github.com/form3tech-oss/x-pdb/internal/pdb"
 	"github.com/form3tech-oss/x-pdb/internal/preactivities"
 	stateclient "github.com/form3tech-oss/x-pdb/internal/state/client"
-	stateserver "github.com/form3tech-oss/x-pdb/internal/state/server"
 	"github.com/form3tech-oss/x-pdb/internal/webhooks"
 	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
@@ -68,8 +67,7 @@ func main() {
 	var probeAddr string
 	var webhookCertsDir string
 	var webhookPort int
-	var controllerCertsDir string
-	var controllerPort int
+	var stateCertsDir string
 	var remoteEndpoints string
 	var leaseNamespace string
 	var podID string
@@ -80,8 +78,7 @@ func main() {
 	flag.StringVar(&probeAddr, "health-probe-bind-address", ":8081", "The address the probe endpoint binds to.")
 	flag.StringVar(&webhookCertsDir, "webhook-certs-dir", "", "The directory that contains webhook certificates")
 	flag.IntVar(&webhookPort, "webhook-port", 9443, "The webhook binding port")
-	flag.StringVar(&controllerCertsDir, "controller-certs-dir", "", "The directory that contains webhook certificates")
-	flag.IntVar(&controllerPort, "controller-port", 9643, "The state server binding port")
+	flag.StringVar(&stateCertsDir, "state-certs-dir", "", "The directory that contains state server certificates")
 	flag.StringVar(&remoteEndpoints, "remote-endpoints", "", "The list of endpoints of the remote pdb controllers")
 	flag.StringVar(&leaseNamespace, "namespace", "kube-system", "the namespace in which the controller runs in")
 	flag.StringVar(&podID, "pod-id", os.Getenv("HOSTNAME"),
@@ -133,7 +130,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	stateClientPool := stateclient.NewClientPool(signalHandler, &logger, controllerCertsDir)
+	stateClientPool := stateclient.NewClientPool(signalHandler, &logger, stateCertsDir)
 
 	lockService := lock.NewService(
 		&logger,
@@ -144,7 +141,7 @@ func main() {
 		remoteEndpointsList,
 	)
 
-	disruptionProbeClientPool := disruptionprobe.NewClientPool(signalHandler, &logger, controllerCertsDir)
+	disruptionProbeClientPool := disruptionprobe.NewClientPool(signalHandler, &logger, stateCertsDir)
 	disruptionProbeService := disruptionprobe.NewService(&logger, disruptionProbeClientPool)
 
 	scaleFinder := pdb.NewScaleFinder(mgr.GetClient(), cli.DiscoveryClient)
@@ -184,14 +181,6 @@ func main() {
 			preactivitiesService,
 		)
 		hookServer.Register("/validate", &webhook.Admission{Handler: podValidationWebhook})
-	}
-
-	{
-		stateServer := stateserver.NewServer(pdbService, lockService, &logger, controllerPort, controllerCertsDir)
-		if err := mgr.Add(stateServer); err != nil {
-			setupLog.Error(err, "unable to create state server")
-			os.Exit(1)
-		}
 	}
 
 	// +kubebuilder:scaffold:builder

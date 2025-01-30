@@ -5,8 +5,8 @@ kind: ValidatingWebhookConfiguration
 metadata:
   name: {{ include "x-pdb.fullname" . }}-pod-deletion-validation
   annotations:
-{{- if .Values.webhook.tls.certManager.enabled }}
-    {{- if .Values.webhook.tls.certManager.injectFromSecret }}
+{{- if .Values.certificates.webhook.certManager.enabled }}
+    {{- if .Values.certificates.webhook.certManager.injectFromSecret }}
     cert-manager.io/inject-ca-from-secret: {{ .Release.Namespace }}/{{ include "x-pdb.fullname" . }}-webhook-cert
     {{- else }}
     cert-manager.io/inject-ca-from: {{ .Release.Namespace }}/{{ include "x-pdb.fullname" . }}-webhook-cert
@@ -17,11 +17,11 @@ webhooks:
     - v1
     clientConfig:
       service:
-        name: {{ include "x-pdb.fullname" . }}
+        name: {{ include "x-pdb.fullname" . }}-webhook
         namespace: {{ .Release.Namespace }}
         path: /validate
-{{- if .Values.webhook.tls.cert.enabled }}
-      caBundle: {{ .Values.webhook.tls.cert.caBundle | quote }}
+{{- if .Values.certificates.webhook.cert.enabled }}
+      caBundle: {{ .Values.certificates.webhook.cert.caBundle | quote }}
 {{- end }}
     failurePolicy: Fail
     name: deletion.x-pdb.form3.tech
@@ -44,11 +44,11 @@ webhooks:
     - v1
     clientConfig:
       service:
-        name: {{ include "x-pdb.fullname" . }}
+        name: {{ include "x-pdb.fullname" . }}-webhook
         namespace: {{ .Release.Namespace }}
         path: /validate
-{{- if .Values.webhook.tls.cert.enabled }}
-      caBundle: {{ .Values.webhook.tls.cert.caBundle | quote }}
+{{- if .Values.certificates.webhook.cert.enabled }}
+      caBundle: {{ .Values.certificates.webhook.cert.caBundle | quote }}
 {{- end }}
     failurePolicy: Fail
     name: eviction.x-pdb.form3.tech
@@ -68,3 +68,4 @@ webhooks:
     sideEffects: None
     timeoutSeconds: {{ .Values.webhook.timeoutSeconds }}
 {{- end -}}
+

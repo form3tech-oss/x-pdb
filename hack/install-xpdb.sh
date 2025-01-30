@@ -37,11 +37,15 @@ fi
 
 helm upgrade -i x-pdb ./charts/x-pdb \
   -f "hack/env/xpdb-values.yaml" \
-  --set controller.clusterID="${CLUSTER}" \
-  --set controller.remoteEndpoints="$remote_endpoints" \
-  --set controller.tls.certManager.ipAddresses="{$this_address}" \
-  --set service.controller.loadBalancerIP="$this_address" \
+  --set clusterID="${CLUSTER}" \
+  --set webhook.remoteEndpoints="$remote_endpoints" \
+  --set certificates.state.certManager.ipAddresses="{$this_address}" \
+  --set state.service.loadBalancerIP="$this_address" \
   --kube-context="${CONTEXT}"
 
-kubectl rollout restart deploy/x-pdb --context="${CONTEXT}"
-kubectl wait deployment x-pdb --for condition=Available=True --timeout=90s --context="${CONTEXT}"
+kubectl rollout restart deploy/x-pdb-state --context="${CONTEXT}"
+kubectl wait deployment x-pdb-state --for condition=Available=True --timeout=90s --context="${CONTEXT}"
+
+kubectl rollout restart deploy/x-pdb-webhook --context="${CONTEXT}"
+kubectl wait deployment x-pdb-webhook --for condition=Available=True --timeout=90s --context="${CONTEXT}"
+

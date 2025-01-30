@@ -1,0 +1,22 @@
+{{- if .Values.state.podDisruptionBudget.enabled }}
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "x-pdb.fullname" . }}-state
+  namespace: {{ include "x-pdb.namespace" . }}
+  labels:
+    {{- include "x-pdb.stateLabels" . | nindent 4 }}
+spec:
+  {{- if not (or (hasKey .Values.state.podDisruptionBudget "minAvailable") (hasKey .Values.state.podDisruptionBudget "maxUnavailable")) }}
+  minAvailable: 1 # Default value because minAvailable and maxUnavailable are not set
+  {{- end }}
+  {{- if hasKey .Values.state.podDisruptionBudget "minAvailable" }}
+  minAvailable: {{ .Values.state.podDisruptionBudget.minAvailable }}
+  {{- end }}
+  {{- if hasKey .Values.state.podDisruptionBudget "maxUnavailable" }}
+  maxUnavailable: {{ .Values.state.podDisruptionBudget.maxUnavailable }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "x-pdb.stateSelectorLabels" . | nindent 6 }}
+{{- end }}
