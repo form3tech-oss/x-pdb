@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ default (printf "%s-state" (include "x-pdb.fullname" .)) .Values.state.service.nameOverride }}
+  name: {{ include "x-pdb.stateServiceName" . }}
   namespace: {{ include "x-pdb.namespace" . }}
   labels:
     {{- include "x-pdb.stateLabels" . | nindent 4 }}

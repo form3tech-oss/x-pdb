@@ -17,6 +17,7 @@ state:
   metricsPort: 8080
   log:
     level: info
+  remoteStateEndpoints: []
   extraArgs: []
     # - "--dry-run=true"
   hostNetwork: false

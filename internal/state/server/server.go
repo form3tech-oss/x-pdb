@@ -27,6 +27,7 @@ import (
 	"path/filepath"
 	"runtime/debug"
 
+	"github.com/form3tech-oss/x-pdb/api/v1alpha1"
 	"github.com/form3tech-oss/x-pdb/internal/converters"
 	"github.com/form3tech-oss/x-pdb/internal/lock"
 	"github.com/form3tech-oss/x-pdb/internal/pdb"
@@ -38,7 +39,10 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/status"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/certwatcher"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/metrics"
 )
 
@@ -49,8 +53,9 @@ type Server struct {
 	certsDir    string
 }
 
-func NewServer(pdbService *pdb.Service, lockService *lock.Service, logger *logr.Logger, port int, certsDir string) *Server {
+func NewServer(client client.Client, pdbService *pdb.Service, lockService *lock.Service, logger *logr.Logger, port int, certsDir string) *Server {
 	s := &stateServer{
+		client:      client,
 		pdbService:  pdbService,
 		lockService: lockService,
 		logger:      logger,
@@ -142,10 +147,49 @@ func (s *Server) Start(ctx context.Context) error {
 }
 
 type stateServer struct {
+	client      client.Client
 	pdbService  *pdb.Service
 	lockService *lock.Service
 	logger      *logr.Logger
 	statepb.UnimplementedStateServiceServer
+}
+
+func (s *stateServer) CanPodBeDisrupted(ctx context.Context, req *statepb.CanPodBeDisruptedRequest) (*statepb.CanPodBeDisruptedResponse, error) {
+	pod := corev1.Pod{}
+	err := s.client.Get(ctx, types.NamespacedName{Namespace: req.Namespace, Name: req.Name}, &pod)
+	if err != nil {
+		return nil, err
+	}
+
+	xpdb := v1alpha1.XPodDisruptionBudget{}
+	err = s.client.Get(ctx, types.NamespacedName{Namespace: req.Namespace, Name: req.XpdbName}, &xpdb)
+	if err != nil {
+		return nil, err
+	}
+
+	allowed, err := s.pdbService.CanPodBeDisrupted(ctx, &pod, &xpdb)
+	if err != nil {
+		return nil, err
+	}
+
+	return &statepb.CanPodBeDisruptedResponse{
+		Allowed: allowed,
+	}, nil
+}
+
+func (s *stateServer) LockAll(ctx context.Context, req *statepb.LockAllRequest) (*statepb.LockAllResponse, error) {
+	labelSelector := converters.ConvertLabelSelectorToMetaV1(req.LabelSelector)
+
+	resp := &statepb.LockAllResponse{}
+	err := s.lockService.Lock(ctx, req.LeaseHolderIdentity, req.Namespace, labelSelector)
+	if err == nil {
+		resp.Acquired = true
+	} else {
+		s.logger.Error(err, "unable to lock xpdb")
+		resp.Error = err.Error()
+	}
+
+	return resp, nil
 }
 
 func (s *stateServer) Lock(ctx context.Context, req *statepb.LockRequest) (*statepb.LockResponse, error) {
@@ -163,11 +207,26 @@ func (s *stateServer) Lock(ctx context.Context, req *statepb.LockRequest) (*stat
 	return resp, nil
 }
 
+func (s *stateServer) UnlockAll(ctx context.Context, req *statepb.UnlockAllRequest) (*statepb.UnlockAllResponse, error) {
+	labelSelector := converters.ConvertLabelSelectorToMetaV1(req.LabelSelector)
+
+	resp := &statepb.UnlockAllResponse{}
+	err := s.lockService.Unlock(ctx, req.LeaseHolderIdentity, req.Namespace, labelSelector)
+	if err == nil {
+		resp.Unlocked = true
+	} else {
+		s.logger.Error(err, "unable to unlock xpdb")
+		resp.Error = err.Error()
+	}
+
+	return resp, nil
+}
+
 func (s *stateServer) Unlock(ctx context.Context, req *statepb.UnlockRequest) (*statepb.UnlockResponse, error) {
 	labelSelector := converters.ConvertLabelSelectorToMetaV1(req.LabelSelector)
 
 	resp := &statepb.UnlockResponse{}
-	err := s.lockService.LocalUnlock(context.Background(), req.LeaseHolderIdentity, req.Namespace, labelSelector)
+	err := s.lockService.LocalUnlock(ctx, req.LeaseHolderIdentity, req.Namespace, labelSelector)
 	if err == nil {
 		resp.Unlocked = true
 	} else {
@@ -181,7 +240,7 @@ func (s *stateServer) Unlock(ctx context.Context, req *statepb.UnlockRequest) (*
 func (s *stateServer) GetState(ctx context.Context, req *statepb.GetStateRequest) (*statepb.GetStateResponse, error) {
 	labelSelector := converters.ConvertLabelSelectorToMetaV1(req.LabelSelector)
 
-	desiredHealthy, healthy, err := s.pdbService.GetPodCounts(context.Background(), req.Namespace, labelSelector)
+	desiredHealthy, healthy, err := s.pdbService.GetPodCounts(ctx, req.Namespace, labelSelector)
 	if err != nil {
 		s.logger.Error(err, "unable to get pod counts")
 		return nil, status.Errorf(codes.Internal, "unable to get pod counts")

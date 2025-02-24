@@ -98,3 +98,11 @@ Create the name of the service account to use
 {{- default "default" .Values.serviceAccount.name }}
 {{- end }}
 {{- end }}
+
+
+{{/*
+Name of the service for the state service
+*/}}
+{{- define "x-pdb.stateServiceName" -}}
+{{ default (printf "%s-state" (include "x-pdb.fullname" .)) .Values.state.service.nameOverride }}
+{{- end }}

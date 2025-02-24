@@ -17,14 +17,10 @@ limitations under the License.
 package main
 
 import (
-	"errors"
 	"flag"
-	"fmt"
 	"os"
-	"strings"
 
 	"github.com/form3tech-oss/x-pdb/internal/disruptionprobe"
-	"github.com/form3tech-oss/x-pdb/internal/lock"
 	"github.com/form3tech-oss/x-pdb/internal/pdb"
 	"github.com/form3tech-oss/x-pdb/internal/preactivities"
 	stateclient "github.com/form3tech-oss/x-pdb/internal/state/client"
@@ -68,7 +64,7 @@ func main() {
 	var webhookCertsDir string
 	var webhookPort int
 	var stateCertsDir string
-	var remoteEndpoints string
+	var localStateEndpoint string
 	var leaseNamespace string
 	var podID string
 	var kubeContext string
@@ -79,7 +75,7 @@ func main() {
 	flag.StringVar(&webhookCertsDir, "webhook-certs-dir", "", "The directory that contains webhook certificates")
 	flag.IntVar(&webhookPort, "webhook-port", 9443, "The webhook binding port")
 	flag.StringVar(&stateCertsDir, "state-certs-dir", "", "The directory that contains state server certificates")
-	flag.StringVar(&remoteEndpoints, "remote-endpoints", "", "The list of endpoints of the remote pdb controllers")
+	flag.StringVar(&localStateEndpoint, "local-state-endpoint", "x-pdb", "The address the probe endpoint binds to.")
 	flag.StringVar(&leaseNamespace, "namespace", "kube-system", "the namespace in which the controller runs in")
 	flag.StringVar(&podID, "pod-id", os.Getenv("HOSTNAME"),
 		"The ID of the pod x-pdb pod. Used as prefix for the lease-holder-identity to obtain locks across clusters.",
@@ -124,22 +120,12 @@ func main() {
 		os.Exit(1)
 	}
 
-	remoteEndpointsList, err := parseEndpoints(remoteEndpoints)
+	stateClientPool := stateclient.NewClientPool(signalHandler, &logger, stateCertsDir)
+	stateClient, err := stateClientPool.Get(localStateEndpoint)
 	if err != nil {
-		setupLog.Error(err, "unable to parse remote endpoints")
+		setupLog.Error(err, "unable to get a state client")
 		os.Exit(1)
 	}
-
-	stateClientPool := stateclient.NewClientPool(signalHandler, &logger, stateCertsDir)
-
-	lockService := lock.NewService(
-		&logger,
-		mgr.GetClient(),
-		mgr.GetAPIReader(),
-		stateClientPool,
-		leaseNamespace,
-		remoteEndpointsList,
-	)
 
 	disruptionProbeClientPool := disruptionprobe.NewClientPool(signalHandler, &logger, stateCertsDir)
 	disruptionProbeService := disruptionprobe.NewService(&logger, disruptionProbeClientPool)
@@ -151,37 +137,35 @@ func main() {
 		scaleFinder,
 		stateClientPool,
 		leaseNamespace,
-		remoteEndpointsList)
+		[]string{})
 
 	preactivitiesService := preactivities.NewService(logger, mgr.GetClient())
 
-	{
-		hookServer := &webhook.DefaultServer{
-			Options: webhook.Options{
-				Port:    webhookPort,
-				CertDir: webhookCertsDir,
-			},
-		}
-		if err := mgr.Add(hookServer); err != nil {
-			setupLog.Error(err, "unable to create pod mutator webhook server")
-			os.Exit(1)
-		}
-		decoder := admission.NewDecoder(mgr.GetScheme())
-		podValidationWebhook := webhooks.NewPodValidationWebhook(
-			mgr.GetClient(),
-			logger,
-			decoder,
-			mgr.GetEventRecorderFor("x-pdb"),
-			clusterID,
-			podID,
-			dryRun,
-			pdbService,
-			lockService,
-			disruptionProbeService,
-			preactivitiesService,
-		)
-		hookServer.Register("/validate", &webhook.Admission{Handler: podValidationWebhook})
+	hookServer := &webhook.DefaultServer{
+		Options: webhook.Options{
+			Port:    webhookPort,
+			CertDir: webhookCertsDir,
+		},
 	}
+	if err := mgr.Add(hookServer); err != nil {
+		setupLog.Error(err, "unable to create pod mutator webhook server")
+		os.Exit(1)
+	}
+	decoder := admission.NewDecoder(mgr.GetScheme())
+	podValidationWebhook := webhooks.NewPodValidationWebhook(
+		mgr.GetClient(),
+		logger,
+		decoder,
+		mgr.GetEventRecorderFor("x-pdb"),
+		clusterID,
+		podID,
+		dryRun,
+		stateClient,
+		pdbService,
+		disruptionProbeService,
+		preactivitiesService,
+	)
+	hookServer.Register("/validate", &webhook.Admission{Handler: podValidationWebhook})
 
 	// +kubebuilder:scaffold:builder
 	if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {
@@ -198,27 +182,4 @@ func main() {
 		setupLog.Error(err, "problem running manager")
 		os.Exit(1)
 	}
-}
-
-func parseEndpoints(endpointString string) ([]string, error) {
-	//nolint:prealloc
-	var endpoints []string
-	var errs []error
-	splitEndpoints := strings.Split(endpointString, ",")
-
-	if len(splitEndpoints) == 1 && splitEndpoints[0] == "" {
-		return endpoints, nil
-	}
-
-	for _, ep := range splitEndpoints {
-		sanitizedEndpoint := strings.TrimSpace(ep)
-
-		if sanitizedEndpoint == "" {
-			errs = append(errs, fmt.Errorf("endpoint cannot be empty"))
-			continue
-		}
-
-		endpoints = append(endpoints, sanitizedEndpoint)
-	}
-	return endpoints, errors.Join(errs...)
 }

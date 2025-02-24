@@ -7,7 +7,11 @@ webhook:
   extraArgs:
   - --zap-stacktrace-level=panic
   automountServiceAccountToken: true
+  log:
+    level: debug
 state:
+  log:
+    level: debug
   image:
     tag: "latest"
   extraArgs:

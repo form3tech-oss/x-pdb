@@ -38,7 +38,7 @@ fi
 helm upgrade -i x-pdb ./charts/x-pdb \
   -f "hack/env/xpdb-values.yaml" \
   --set clusterID="${CLUSTER}" \
-  --set webhook.remoteEndpoints="$remote_endpoints" \
+  --set state.remoteStateEndpoints="$remote_endpoints" \
   --set certificates.state.certManager.ipAddresses="{$this_address}" \
   --set state.service.loadBalancerIP="$this_address" \
   --kube-context="${CONTEXT}"

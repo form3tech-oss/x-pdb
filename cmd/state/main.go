@@ -17,8 +17,11 @@ limitations under the License.
 package main
 
 import (
+	"errors"
 	"flag"
+	"fmt"
 	"os"
+	"strings"
 
 	"github.com/form3tech-oss/x-pdb/internal/lock"
 	"github.com/form3tech-oss/x-pdb/internal/pdb"
@@ -56,19 +59,23 @@ func init() {
 }
 
 func main() {
-	var metricsAddr string
-	var probeAddr string
-	var stateCertsDir string
-	var statePort int
-	var leaseNamespace string
-	var podID string
-	var kubeContext string
 	var clusterID string
 	var dryRun bool
+	var kubeContext string
+	var leaseNamespace string
+	var metricsAddr string
+	var podID string
+	var probeAddr string
+	var remoteStateEndpoints string
+	var stateCertsDir string
+	var statePort int
 	flag.StringVar(&metricsAddr, "metrics-bind-address", ":8080", "The address the metric endpoint binds to.")
 	flag.StringVar(&probeAddr, "health-probe-bind-address", ":8081", "The address the probe endpoint binds to.")
 	flag.StringVar(&stateCertsDir, "state-certs-dir", "", "The directory that contains state server certificates")
 	flag.IntVar(&statePort, "state-port", 9643, "The state server binding port")
+	flag.StringVar(&remoteStateEndpoints, "remote-state-endpoints", "",
+		"The list of endpoints of the remote pdb controllers",
+	)
 	flag.StringVar(&leaseNamespace, "namespace", "kube-system", "the namespace in which the controller runs in")
 	flag.StringVar(&podID, "pod-id", os.Getenv("HOSTNAME"),
 		"The ID of the pod x-pdb pod. Used as prefix for the lease-holder-identity to obtain locks across clusters.",
@@ -113,6 +120,12 @@ func main() {
 		os.Exit(1)
 	}
 
+	remoteEndpointsList, err := parseEndpoints(remoteStateEndpoints)
+	if err != nil {
+		setupLog.Error(err, "unable to parse remote endpoints")
+		os.Exit(1)
+	}
+
 	stateClientPool := stateclient.NewClientPool(signalHandler, &logger, stateCertsDir)
 
 	lockService := lock.NewService(
@@ -121,7 +134,7 @@ func main() {
 		mgr.GetAPIReader(),
 		stateClientPool,
 		leaseNamespace,
-		[]string{},
+		remoteEndpointsList,
 	)
 
 	scaleFinder := pdb.NewScaleFinder(mgr.GetClient(), cli.DiscoveryClient)
@@ -131,14 +144,12 @@ func main() {
 		scaleFinder,
 		stateClientPool,
 		leaseNamespace,
-		[]string{})
+		remoteEndpointsList)
 
-	{
-		stateServer := stateserver.NewServer(pdbService, lockService, &logger, statePort, stateCertsDir)
-		if err := mgr.Add(stateServer); err != nil {
-			setupLog.Error(err, "unable to create state server")
-			os.Exit(1)
-		}
+	stateServer := stateserver.NewServer(mgr.GetClient(), pdbService, lockService, &logger, statePort, stateCertsDir)
+	if err := mgr.Add(stateServer); err != nil {
+		setupLog.Error(err, "unable to create state server")
+		os.Exit(1)
 	}
 
 	// +kubebuilder:scaffold:builder
@@ -156,4 +167,27 @@ func main() {
 		setupLog.Error(err, "problem running manager")
 		os.Exit(1)
 	}
+}
+
+func parseEndpoints(endpointString string) ([]string, error) {
+	//nolint:prealloc
+	var endpoints []string
+	var errs []error
+	splitEndpoints := strings.Split(endpointString, ",")
+
+	if len(splitEndpoints) == 1 && splitEndpoints[0] == "" {
+		return endpoints, nil
+	}
+
+	for _, ep := range splitEndpoints {
+		sanitizedEndpoint := strings.TrimSpace(ep)
+
+		if sanitizedEndpoint == "" {
+			errs = append(errs, fmt.Errorf("endpoint cannot be empty"))
+			continue
+		}
+
+		endpoints = append(endpoints, sanitizedEndpoint)
+	}
+	return endpoints, errors.Join(errs...)
 }

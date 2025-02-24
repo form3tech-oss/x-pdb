@@ -45,7 +45,7 @@ spec:
           args:
           - "--cluster-id={{ .Values.clusterID }}"
           - "--zap-log-level={{ .Values.webhook.log.level }}"
-          - "--remote-endpoints={{- join "," .Values.webhook.remoteEndpoints }}"
+          - "--local-state-endpoint={{ include "x-pdb.stateServiceName" . }}.{{ include "x-pdb.namespace" . }}.svc.cluster.local:443"
           - "--webhook-certs-dir=/tmp/webhook-cert"
           - "--state-certs-dir=/tmp/state-cert"
           - "--webhook-port={{ .Values.webhook.port }}"

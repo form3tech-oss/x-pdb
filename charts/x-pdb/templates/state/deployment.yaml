@@ -47,6 +47,7 @@ spec:
           - "--zap-log-level={{ .Values.state.log.level }}"
           - "--state-certs-dir=/tmp/state-cert"
           - "--state-port={{ .Values.state.port }}"
+          - "--remote-state-endpoints={{- join "," .Values.state.remoteStateEndpoints }}"
           - "--metrics-bind-address=:{{ .Values.state.metricsPort }}"
           - "--health-probe-bind-address=:{{ .Values.state.healthProbePort }}"
           {{- range $value := .Values.state.extraArgs }}

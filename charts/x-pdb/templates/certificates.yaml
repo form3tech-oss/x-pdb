@@ -38,7 +38,13 @@ metadata:
     {{- include "x-pdb.stateLabels" . | nindent 4 }}
 spec:
   dnsNames:
-    {{- toYaml .Values.certificates.state.certManager.dnsNames | nindent 4 }}
+    - {{ include "x-pdb.stateServiceName" . }}
+    - {{ include "x-pdb.stateServiceName" . }}.{{ include "x-pdb.namespace" . }}
+    - {{ include "x-pdb.stateServiceName" . }}.{{ include "x-pdb.namespace" . }}.svc
+    - {{ include "x-pdb.stateServiceName" . }}.{{ include "x-pdb.namespace" . }}.svc.cluster.local
+    {{- range $name:= .Values.certificates.state.certManager.dnsNames }}
+    - {{ $name }}
+    {{- end }}
   ipAddresses:
     {{- toYaml .Values.certificates.state.certManager.ipAddresses | nindent 4 }}
   issuerRef:
