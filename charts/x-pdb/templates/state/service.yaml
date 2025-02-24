@@ -1,0 +1,30 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "x-pdb.stateServiceName" . }}
+  namespace: {{ include "x-pdb.namespace" . }}
+  labels:
+    {{- include "x-pdb.stateLabels" . | nindent 4 }}
+  {{- with .Values.state.service.annotations }}
+  annotations:
+      {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  type: {{ .Values.state.service.type }}
+  {{- with .Values.state.service.loadBalancerIP }}
+  loadBalancerIP: {{ . }}
+  {{- end }}
+  ports:
+    - port: 443
+      name: state
+      protocol: TCP
+      targetPort: state
+      {{- with .Values.state.service.nodePort }}
+      nodePort: {{ . }}
+      {{- end }}
+    - port: {{ .Values.state.serviceMonitor.service.port }}
+      name: metrics
+      protocol: TCP
+      targetPort: metrics
+  selector:
+    {{- include "x-pdb.stateSelectorLabels" . | nindent 4 }}

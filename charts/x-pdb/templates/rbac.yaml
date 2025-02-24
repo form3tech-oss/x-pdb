@@ -5,7 +5,7 @@ metadata:
   name: {{ include "x-pdb.fullname" . }}-leader-election-role
   namespace: {{ include "x-pdb.namespace" . }}
   labels:
-    {{- include "x-pdb.labels" . | nindent 4 }}
+    {{- include "x-pdb.stateLabels" . | nindent 4 }}
 rules:
 - apiGroups:
     - ""
@@ -45,7 +45,7 @@ metadata:
   name: {{ include "x-pdb.fullname" . }}-leader-election-rolebinding
   namespace: {{ include "x-pdb.namespace" . }}
   labels:
-    {{- include "x-pdb.labels" . | nindent 4 }}
+    {{- include "x-pdb.stateLabels" . | nindent 4 }}
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
@@ -60,7 +60,7 @@ kind: ClusterRole
 metadata:
   name: {{ include "x-pdb.fullname" . }}-role
   labels:
-    {{- include "x-pdb.labels" . | nindent 4 }}
+    {{- include "x-pdb.stateLabels" . | nindent 4 }}
 rules:
 - apiGroups:
   - ""
@@ -123,7 +123,7 @@ kind: ClusterRoleBinding
 metadata:
   name: {{ include "x-pdb.fullname" . }}-rolebinding
   labels:
-    {{- include "x-pdb.labels" . | nindent 4 }}
+    {{- include "x-pdb.stateLabels" . | nindent 4 }}
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole

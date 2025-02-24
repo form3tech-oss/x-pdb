@@ -1,0 +1,109 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "x-pdb.fullname" . }}-state
+  namespace: {{ include "x-pdb.namespace" . }}
+  labels:
+    {{- include "x-pdb.stateLabels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.state.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "x-pdb.stateSelectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      {{- with .Values.state.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "x-pdb.stateSelectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "x-pdb.serviceAccountName" . }}
+      automountServiceAccountToken: {{ .Values.automountServiceAccountToken }}
+      securityContext:
+        {{- toYaml .Values.state.podSecurityContext | nindent 8 }}
+      {{- if .Values.state.priorityClassName }}
+      priorityClassName: {{ .Values.state.priorityClassName | quote }}
+      {{- end }}
+      {{- if .Values.state.hostNetwork }}
+      hostNetwork: true
+      {{- end }}
+      dnsPolicy: {{ .Values.state.dnsPolicy }}
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+            {{- toYaml .Values.state.securityContext | nindent 12 }}
+          image: "{{ .Values.state.image.registry }}/{{ .Values.state.image.repository }}:{{ default .Chart.AppVersion .Values.state.image.tag }}"
+          imagePullPolicy: {{ .Values.state.image.pullPolicy }}
+          command:
+          - /x-pdb
+          args:
+          - "--cluster-id={{ .Values.clusterID }}"
+          - "--zap-log-level={{ .Values.state.log.level }}"
+          - "--state-certs-dir=/tmp/state-cert"
+          - "--state-port={{ .Values.state.port }}"
+          - "--remote-state-endpoints={{- join "," .Values.state.remoteStateEndpoints }}"
+          - "--metrics-bind-address=:{{ .Values.state.metricsPort }}"
+          - "--health-probe-bind-address=:{{ .Values.state.healthProbePort }}"
+          {{- range $value := .Values.state.extraArgs }}
+          - {{ $value | quote }}
+          {{- end }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.state.healthProbePort }}
+              protocol: TCP
+            - name: metrics
+              containerPort: {{ .Values.state.metricsPort }}
+              protocol: TCP
+            - name: state
+              containerPort: {{ .Values.state.port }}
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: http
+          resources:
+            {{- toYaml .Values.state.resources | nindent 12 }}
+          volumeMounts:
+            - mountPath: /tmp/state-cert
+              name: state-cert
+              readOnly: true
+            {{- with .Values.extraVolumeMounts -}}
+              {{ toYaml . | nindent 12 }}
+            {{- end }}
+      {{- with .Values.state.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.state.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      volumes:
+      {{- if .Values.certificates.state.certManager.enabled }}
+      - name: state-cert
+        secret:
+          defaultMode: 420
+          secretName: {{ include "x-pdb.fullname" . }}-state-cert
+      {{- else if .Values.certificates.state.cert.enabled }}
+      - name: state-cert
+        secret:
+          defaultMode: 420
+          secretName: {{ .Values.certificates.state.cert.secretName }}
+      {{- end }}
+      {{- with .Values.state.extraVolumes -}}
+        {{ toYaml . | nindent 6 }}
+      {{- end }}

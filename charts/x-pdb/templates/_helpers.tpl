@@ -43,12 +43,12 @@ Create chart name and version as used by the chart label.
 {{- end }}
 
 {{/*
-Common labels
+State labels
 */}}
-{{- define "x-pdb.labels" -}}
+{{- define "x-pdb.stateLabels" -}}
 helm.sh/chart: {{ include "x-pdb.chart" . }}
-{{ include "x-pdb.selectorLabels" . -}}
-{{ with .Values.extraLabels }}
+{{ include "x-pdb.stateSelectorLabels" . -}}
+{{ with .Values.state.extraLabels }}
 {{- toYaml . }}
 {{- end }}
 {{- if .Chart.AppVersion }}
@@ -58,10 +58,33 @@ app.kubernetes.io/managed-by: {{ .Release.Service }}
 {{- end }}
 
 {{/*
-Selector labels
+State Selector labels
 */}}
-{{- define "x-pdb.selectorLabels" -}}
-app.kubernetes.io/name: {{ include "x-pdb.name" . }}
+{{- define "x-pdb.stateSelectorLabels" -}}
+app.kubernetes.io/name: {{ include "x-pdb.name" . }}-state
+app.kubernetes.io/instance: {{ .Release.Name }}
+{{- end }}
+
+{{/*
+Webhook labels
+*/}}
+{{- define "x-pdb.webhookLabels" -}}
+helm.sh/chart: {{ include "x-pdb.chart" . }}
+{{ include "x-pdb.webhookSelectorLabels" . -}}
+{{ with .Values.webhook.extraLabels }}
+{{- toYaml . }}
+{{- end }}
+{{- if .Chart.AppVersion }}
+app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
+{{- end }}
+app.kubernetes.io/managed-by: {{ .Release.Service }}
+{{- end }}
+
+{{/*
+Webhook Selector labels
+*/}}
+{{- define "x-pdb.webhookSelectorLabels" -}}
+app.kubernetes.io/name: {{ include "x-pdb.name" . }}-webhook
 app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end }}
 
@@ -74,4 +97,12 @@ Create the name of the service account to use
 {{- else }}
 {{- default "default" .Values.serviceAccount.name }}
 {{- end }}
+{{- end }}
+
+
+{{/*
+Name of the service for the state service
+*/}}
+{{- define "x-pdb.stateServiceName" -}}
+{{ default (printf "%s-state" (include "x-pdb.fullname" .)) .Values.state.service.nameOverride }}
 {{- end }}

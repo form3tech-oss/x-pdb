@@ -1,0 +1,125 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "x-pdb.fullname" . }}-webhook
+  namespace: {{ include "x-pdb.namespace" . }}
+  labels:
+    {{- include "x-pdb.webhookLabels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.webhook.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "x-pdb.webhookSelectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      {{- with .Values.webhook.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "x-pdb.webhookSelectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "x-pdb.serviceAccountName" . }}
+      automountServiceAccountToken: {{ .Values.webhook.automountServiceAccountToken }}
+      securityContext:
+        {{- toYaml .Values.webhook.podSecurityContext | nindent 8 }}
+      {{- if .Values.webhook.priorityClassName }}
+      priorityClassName: {{ .Values.webhook.priorityClassName | quote }}
+      {{- end }}
+      {{- if .Values.webhook.hostNetwork }}
+      hostNetwork: true
+      {{- end }}
+      dnsPolicy: {{ .Values.webhook.dnsPolicy }}
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+            {{- toYaml .Values.webhook.securityContext | nindent 12 }}
+          image: "{{ .Values.webhook.image.registry }}/{{ .Values.webhook.image.repository }}:{{ default .Chart.AppVersion .Values.webhook.image.tag }}"
+          imagePullPolicy: {{ .Values.webhook.image.pullPolicy }}
+          command:
+          - /x-pdb
+          args:
+          - "--cluster-id={{ .Values.clusterID }}"
+          - "--zap-log-level={{ .Values.webhook.log.level }}"
+          - "--local-state-endpoint={{ include "x-pdb.stateServiceName" . }}.{{ include "x-pdb.namespace" . }}.svc.cluster.local:443"
+          - "--webhook-certs-dir=/tmp/webhook-cert"
+          - "--state-certs-dir=/tmp/state-cert"
+          - "--webhook-port={{ .Values.webhook.port }}"
+          - "--metrics-bind-address=:{{ .Values.webhook.metricsPort }}"
+          - "--health-probe-bind-address=:{{ .Values.webhook.healthProbePort }}"
+          {{- range $value := .Values.webhook.extraArgs }}
+          - {{ $value | quote }}
+          {{- end }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.webhook.healthProbePort }}
+              protocol: TCP
+            - name: metrics
+              containerPort: {{ .Values.webhook.metricsPort }}
+              protocol: TCP
+            - name: webhook
+              containerPort: {{ .Values.webhook.port }}
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: http
+          resources:
+            {{- toYaml .Values.webhook.resources | nindent 12 }}
+          volumeMounts:
+            - mountPath: /tmp/webhook-cert
+              name: webhook-server-cert
+              readOnly: true
+            - mountPath: /tmp/state-cert
+              name: state-cert
+              readOnly: true
+            {{- with .Values.webhook.extraVolumeMounts -}}
+              {{ toYaml . | nindent 12 }}
+            {{- end }}
+      {{- with .Values.webhook.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.webhook.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.webhook.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      volumes:
+      {{- if .Values.certificates.webhook.certManager.enabled }}
+      - name: webhook-server-cert
+        secret:
+          defaultMode: 420
+          secretName: {{ include "x-pdb.fullname" . }}-webhook-cert
+      {{- else if .Values.certificates.webhook.cert.enabled }}
+      - name: webhook-server-cert
+        secret:
+          defaultMode: 420
+          secretName: {{ .Values.certificates.webhook.cert.secretName }}
+      {{- end }}
+      {{- if .Values.certificates.state.certManager.enabled }}
+      - name: state-cert
+        secret:
+          defaultMode: 420
+          secretName: {{ include "x-pdb.fullname" . }}-state-cert
+      {{- else if .Values.certificates.state.cert.enabled }}
+      - name: state-cert
+        secret:
+          defaultMode: 420
+          secretName: {{ .Values.certificates.state.cert.secretName }}
+      {{- end }}
+
+      {{- with .Values.webhook.extraVolumes -}}
+        {{ toYaml . | nindent 6 }}
+      {{- end }}

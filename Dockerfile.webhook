@@ -11,11 +11,11 @@ COPY vendor/ vendor/
 RUN go mod verify
 
 COPY api/ api/
-COPY cmd/state cmd/state
+COPY cmd/webhook cmd/webhook
 COPY internal/ internal/
 COPY pkg/ pkg/
 
-RUN CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -a -o x-pdb cmd/state/main.go
+RUN CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -a -o x-pdb cmd/webhook/main.go
 
 FROM gcr.io/distroless/static:nonroot
 WORKDIR /

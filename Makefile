@@ -4,11 +4,13 @@
 
 # Image names
 IMG                       ?= ghcr.io/form3tech-oss/x-pdb:latest
+WEBHOOK_IMG               ?= ghcr.io/form3tech-oss/x-pdb-webhook:latest
 TEST_APP_IMG              ?= x-pdb-test:latest
 TEST_DISRUPTION_PROBE_IMG ?= x-pdb-test-disruption-probe:latest
 
 # Docker file paths
 DOCKERFILE_PATH                       ?= Dockerfile
+WEBHOOK_DOCKERFILE_PATH               ?= Dockerfile.webhook
 TEST_APP_DOCKERFILE_PATH              ?= Dockerfile.testapp
 TEST_DISRUPTION_PROBE_DOCKERFILE_PATH ?= Dockerfile.testdisruptionprobe
 
@@ -107,7 +109,7 @@ test-disruption-probe-load-image: ## Loads Test disruption probe docker image in
 	kind load docker-image $(TEST_DISRUPTION_PROBE_IMG) --name $(KIND_CLUSTER_NAME)
 
 .PHONY: deploy-e2e
-deploy-e2e: test-app-docker-build test-disruption-probe-docker-build docker-build ## Deploys x-pdb and loads test images into all the testing KinD clusters.
+deploy-e2e: test-app-docker-build test-disruption-probe-docker-build webhook-docker-build docker-build ## Deploys x-pdb and loads test images into all the testing KinD clusters.
 	@echo "building and deploying x-pdb and e2e test apps"
 	for number in 1 2 3; do \
 		$(MAKE) install CLUSTER=$$number; \
@@ -148,6 +150,10 @@ run: manifests generate fmt vet ## Run a controller from your host.
 docker-build: ## Build docker image with the manager.
 	$(CONTAINER_TOOL) build -f $(DOCKERFILE_PATH) -t $(IMG) .
 
+.PHONY: webhook-docker-build
+webhook-docker-build: ## Generates Test disruption probe docker image.
+	$(MAKE) docker-build IMG=$(WEBHOOK_IMG) DOCKERFILE_PATH=$(WEBHOOK_DOCKERFILE_PATH)
+
 .PHONY: docker-push
 docker-push: ## Push docker image with the manager.
 	$(CONTAINER_TOOL) push ${IMG}
@@ -186,7 +192,7 @@ destroy-multi-cluster: ## Destroys all the testing KinD clusters.
 	kind get clusters | grep x-pdb | xargs -I {} kind delete cluster -n {}
 
 .PHONY: deploy
-deploy: docker-build ## Deploys x-pdb on all testing KinD clusters.
+deploy: docker-build webhook-docker-build ## Deploys x-pdb on all testing KinD clusters.
 	@echo "building and deploying x-pdb"
 	for number in 1 2 3; do \
 		$(MAKE) install CLUSTER=$$number; \
@@ -212,12 +218,16 @@ install-cert-manager: ## Installs cert-manager and a cluster issuer in a KinD cl
 kind-load: ## Loads an image into a KinD cluster.
 	kind load docker-image ${IMG} --name $(KIND_CLUSTER_NAME)
 
+.PHONY: kind-load-webhook
+kind-load-webhook: ## Loads Test App docker image into a KinD cluster.
+	kind load docker-image $(WEBHOOK_IMG) --name $(KIND_CLUSTER_NAME)
+
 .PHONY: gen-certs
 gen-certs: ## Generates all the TLS certificates for x-pdb
 	./hack/gen-certs.sh
 
 .PHONY: install
-install: kind-load ## Installs x-pdb into a cluster
+install: kind-load kind-load-webhook ## Installs x-pdb into a cluster
 	./hack/install-xpdb.sh $(CONTEXT) $(CLUSTER)
 
 ##@ Proto

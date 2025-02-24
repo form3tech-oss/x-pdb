@@ -25,11 +25,13 @@ import (
 
 	"github.com/form3tech-oss/x-pdb/api/v1alpha1"
 	xpdbv1alpha1 "github.com/form3tech-oss/x-pdb/api/v1alpha1"
+	"github.com/form3tech-oss/x-pdb/internal/converters"
 	"github.com/form3tech-oss/x-pdb/internal/disruptionprobe"
 	"github.com/form3tech-oss/x-pdb/internal/lock"
 	"github.com/form3tech-oss/x-pdb/internal/metrics"
 	"github.com/form3tech-oss/x-pdb/internal/pdb"
 	"github.com/form3tech-oss/x-pdb/internal/preactivities"
+	statepb "github.com/form3tech-oss/x-pdb/pkg/proto/state/v1"
 
 	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
@@ -62,9 +64,9 @@ type PodValidationWebhook struct {
 	decoder                admission.Decoder
 	logger                 logr.Logger
 	client                 client.Client
+	stateClient            statepb.StateServiceClient
 	recorder               record.EventRecorder
 	pdbService             *pdb.Service
-	lockService            *lock.Service
 	disruptionProbeService *disruptionprobe.Service
 	preactivitiesService   *preactivities.Service
 	clusterID              string
@@ -81,8 +83,8 @@ func NewPodValidationWebhook(
 	clusterID string,
 	podID string,
 	dryRun bool,
+	stateClient statepb.StateServiceClient,
 	pdbService *pdb.Service,
-	lockService *lock.Service,
 	disruptionProbeService *disruptionprobe.Service,
 	preactivitiesService *preactivities.Service,
 ) *PodValidationWebhook {
@@ -91,8 +93,8 @@ func NewPodValidationWebhook(
 		logger:                 logger,
 		decoder:                decoder,
 		recorder:               recorder,
+		stateClient:            stateClient,
 		pdbService:             pdbService,
-		lockService:            lockService,
 		disruptionProbeService: disruptionProbeService,
 		preactivitiesService:   preactivitiesService,
 		clusterID:              clusterID,
@@ -202,8 +204,16 @@ func (h PodValidationWebhook) Handle(ctx context.Context, request admission.Requ
 	}
 
 	leaseHolderIdentity := lock.CreateLeaseHolderIdentity(h.clusterID, h.podID, pod.Namespace, pod.Name)
-	err = h.lockService.Lock(ctx, leaseHolderIdentity, xpdb.Namespace, &xpdb.Spec.Selector)
-	if err != nil {
+	lockAllResponse, err := h.stateClient.LockAll(ctx, &statepb.LockAllRequest{
+		LeaseHolderIdentity: leaseHolderIdentity,
+		Namespace:           xpdb.Namespace,
+		LabelSelector:       converters.ConvertLabelSelectorToState(&xpdb.Spec.Selector),
+	})
+
+	if err != nil || !lockAllResponse.Acquired {
+		if err != nil {
+			err = fmt.Errorf("%s", lockAllResponse.Error)
+		}
 		logger.Error(
 			err,
 			"could obtain xpdb lock",
@@ -216,11 +226,15 @@ func (h PodValidationWebhook) Handle(ctx context.Context, request admission.Requ
 			nil)
 	}
 
-	canBeDisrupted, err := h.pdbService.CanPodBeDisrupted(ctx, pod, xpdb)
+	canPodBeDisruptedResponse, err := h.stateClient.CanPodBeDisrupted(ctx, &statepb.CanPodBeDisruptedRequest{
+		Namespace: pod.Namespace,
+		Name:      pod.Name,
+		XpdbName:  xpdb.Name,
+	})
 	if err != nil {
 		return h.handleError(ctx, logger, xpdb, XPDBDisruptionBudgetErrorMessage, err, leaseHolderIdentity)
 	}
-	if !canBeDisrupted {
+	if !canPodBeDisruptedResponse.Allowed {
 		return h.handleNotAllowedDisruption(ctx, logger, request, xpdb, pod, leaseHolderIdentity, XPDBDisruptionBudgetNotAllowedMessage)
 	}
 
@@ -276,10 +290,16 @@ func (h PodValidationWebhook) handleError(
 	leaseHolderIdentity string,
 ) admission.Response {
 	if xpdb != nil {
-		logger.Error(err, "pod disruption check returned an error")
-		unlockErr := h.lockService.Unlock(ctx, leaseHolderIdentity, xpdb.Namespace, &xpdb.Spec.Selector)
-		if unlockErr != nil {
-			logger.Error(unlockErr, "unable to release xpdb lock")
+		resp, err := h.stateClient.UnlockAll(ctx, &statepb.UnlockAllRequest{
+			LeaseHolderIdentity: leaseHolderIdentity,
+			Namespace:           xpdb.Namespace,
+			LabelSelector:       converters.ConvertLabelSelectorToState(&xpdb.Spec.Selector),
+		})
+		if err != nil {
+			logger.Error(err, "unable to release xpdb lock")
+		}
+		if !resp.Unlocked {
+			logger.Error(fmt.Errorf("%s", resp.Error), "unable to release xpdb lock")
 		}
 	}
 
@@ -302,9 +322,16 @@ func (h PodValidationWebhook) handleNotAllowedDisruption(
 		h.recorder.Eventf(xpdb, corev1.EventTypeNormal, string(xpdbv1alpha1.XPDBEventReasonBlocked), "attempted eviction of %s", pod.Name)
 		metrics.ObserveEvictionRejected(xpdb.Namespace, request.Resource.Resource, request.SubResource, string(request.Operation))
 
-		err := h.lockService.Unlock(ctx, leaseHolderIdentity, xpdb.Namespace, &xpdb.Spec.Selector)
+		resp, err := h.stateClient.UnlockAll(ctx, &statepb.UnlockAllRequest{
+			LeaseHolderIdentity: leaseHolderIdentity,
+			Namespace:           xpdb.Namespace,
+			LabelSelector:       converters.ConvertLabelSelectorToState(&xpdb.Spec.Selector),
+		})
 		if err != nil {
-			logger.Error(err, "unable to unlock xpdb")
+			logger.Error(err, "unable to release xpdb lock")
+		}
+		if !resp.Unlocked {
+			logger.Error(fmt.Errorf("%s", resp.Error), "unable to release xpdb lock")
 		}
 	}
 

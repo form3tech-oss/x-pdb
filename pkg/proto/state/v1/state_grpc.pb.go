@@ -19,9 +19,12 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	StateService_Lock_FullMethodName     = "/state.v1.StateService/Lock"
-	StateService_Unlock_FullMethodName   = "/state.v1.StateService/Unlock"
-	StateService_GetState_FullMethodName = "/state.v1.StateService/GetState"
+	StateService_Lock_FullMethodName              = "/state.v1.StateService/Lock"
+	StateService_LockAll_FullMethodName           = "/state.v1.StateService/LockAll"
+	StateService_Unlock_FullMethodName            = "/state.v1.StateService/Unlock"
+	StateService_UnlockAll_FullMethodName         = "/state.v1.StateService/UnlockAll"
+	StateService_CanPodBeDisrupted_FullMethodName = "/state.v1.StateService/CanPodBeDisrupted"
+	StateService_GetState_FullMethodName          = "/state.v1.StateService/GetState"
 )
 
 // StateServiceClient is the client API for StateService service.
@@ -33,8 +36,14 @@ const (
 type StateServiceClient interface {
 	// Acquires a lock on the local cluster using the specified leaseHolderIdentity.
 	Lock(ctx context.Context, in *LockRequest, opts ...grpc.CallOption) (*LockResponse, error)
+	// Acquires a lock on all the clusters using the specified leaseHolderIdentity
+	LockAll(ctx context.Context, in *LockAllRequest, opts ...grpc.CallOption) (*LockAllResponse, error)
 	// Frees a lock on the local cluster if the lease identity matches.
 	Unlock(ctx context.Context, in *UnlockRequest, opts ...grpc.CallOption) (*UnlockResponse, error)
+	// Frees a lock on all clusters if the lease identity matches.
+	UnlockAll(ctx context.Context, in *UnlockAllRequest, opts ...grpc.CallOption) (*UnlockAllResponse, error)
+	// Verifies if a pod can be disrupted
+	CanPodBeDisrupted(ctx context.Context, in *CanPodBeDisruptedRequest, opts ...grpc.CallOption) (*CanPodBeDisruptedResponse, error)
 	// Calculates the expected count based off the Deployment/StatefulSet/ReplicaSet number of replicas or - if implemented - a `scale` sub resource.
 	GetState(ctx context.Context, in *GetStateRequest, opts ...grpc.CallOption) (*GetStateResponse, error)
 }
@@ -57,10 +66,40 @@ func (c *stateServiceClient) Lock(ctx context.Context, in *LockRequest, opts ...
 	return out, nil
 }
 
+func (c *stateServiceClient) LockAll(ctx context.Context, in *LockAllRequest, opts ...grpc.CallOption) (*LockAllResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(LockAllResponse)
+	err := c.cc.Invoke(ctx, StateService_LockAll_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *stateServiceClient) Unlock(ctx context.Context, in *UnlockRequest, opts ...grpc.CallOption) (*UnlockResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(UnlockResponse)
 	err := c.cc.Invoke(ctx, StateService_Unlock_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *stateServiceClient) UnlockAll(ctx context.Context, in *UnlockAllRequest, opts ...grpc.CallOption) (*UnlockAllResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(UnlockAllResponse)
+	err := c.cc.Invoke(ctx, StateService_UnlockAll_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *stateServiceClient) CanPodBeDisrupted(ctx context.Context, in *CanPodBeDisruptedRequest, opts ...grpc.CallOption) (*CanPodBeDisruptedResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CanPodBeDisruptedResponse)
+	err := c.cc.Invoke(ctx, StateService_CanPodBeDisrupted_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -86,8 +125,14 @@ func (c *stateServiceClient) GetState(ctx context.Context, in *GetStateRequest, 
 type StateServiceServer interface {
 	// Acquires a lock on the local cluster using the specified leaseHolderIdentity.
 	Lock(context.Context, *LockRequest) (*LockResponse, error)
+	// Acquires a lock on all the clusters using the specified leaseHolderIdentity
+	LockAll(context.Context, *LockAllRequest) (*LockAllResponse, error)
 	// Frees a lock on the local cluster if the lease identity matches.
 	Unlock(context.Context, *UnlockRequest) (*UnlockResponse, error)
+	// Frees a lock on all clusters if the lease identity matches.
+	UnlockAll(context.Context, *UnlockAllRequest) (*UnlockAllResponse, error)
+	// Verifies if a pod can be disrupted
+	CanPodBeDisrupted(context.Context, *CanPodBeDisruptedRequest) (*CanPodBeDisruptedResponse, error)
 	// Calculates the expected count based off the Deployment/StatefulSet/ReplicaSet number of replicas or - if implemented - a `scale` sub resource.
 	GetState(context.Context, *GetStateRequest) (*GetStateResponse, error)
 	mustEmbedUnimplementedStateServiceServer()
@@ -103,8 +148,17 @@ type UnimplementedStateServiceServer struct{}
 func (UnimplementedStateServiceServer) Lock(context.Context, *LockRequest) (*LockResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Lock not implemented")
 }
+func (UnimplementedStateServiceServer) LockAll(context.Context, *LockAllRequest) (*LockAllResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method LockAll not implemented")
+}
 func (UnimplementedStateServiceServer) Unlock(context.Context, *UnlockRequest) (*UnlockResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Unlock not implemented")
+}
+func (UnimplementedStateServiceServer) UnlockAll(context.Context, *UnlockAllRequest) (*UnlockAllResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UnlockAll not implemented")
+}
+func (UnimplementedStateServiceServer) CanPodBeDisrupted(context.Context, *CanPodBeDisruptedRequest) (*CanPodBeDisruptedResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CanPodBeDisrupted not implemented")
 }
 func (UnimplementedStateServiceServer) GetState(context.Context, *GetStateRequest) (*GetStateResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetState not implemented")
@@ -148,6 +202,24 @@ func _StateService_Lock_Handler(srv interface{}, ctx context.Context, dec func(i
 	return interceptor(ctx, in, info, handler)
 }
 
+func _StateService_LockAll_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(LockAllRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StateServiceServer).LockAll(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StateService_LockAll_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StateServiceServer).LockAll(ctx, req.(*LockAllRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _StateService_Unlock_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(UnlockRequest)
 	if err := dec(in); err != nil {
@@ -162,6 +234,42 @@ func _StateService_Unlock_Handler(srv interface{}, ctx context.Context, dec func
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(StateServiceServer).Unlock(ctx, req.(*UnlockRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StateService_UnlockAll_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UnlockAllRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StateServiceServer).UnlockAll(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StateService_UnlockAll_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StateServiceServer).UnlockAll(ctx, req.(*UnlockAllRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StateService_CanPodBeDisrupted_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CanPodBeDisruptedRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StateServiceServer).CanPodBeDisrupted(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StateService_CanPodBeDisrupted_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StateServiceServer).CanPodBeDisrupted(ctx, req.(*CanPodBeDisruptedRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -196,8 +304,20 @@ var StateService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _StateService_Lock_Handler,
 		},
 		{
+			MethodName: "LockAll",
+			Handler:    _StateService_LockAll_Handler,
+		},
+		{
 			MethodName: "Unlock",
 			Handler:    _StateService_Unlock_Handler,
+		},
+		{
+			MethodName: "UnlockAll",
+			Handler:    _StateService_UnlockAll_Handler,
+		},
+		{
+			MethodName: "CanPodBeDisrupted",
+			Handler:    _StateService_CanPodBeDisrupted_Handler,
 		},
 		{
 			MethodName: "GetState",

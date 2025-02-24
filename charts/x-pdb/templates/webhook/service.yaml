@@ -1,0 +1,23 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ default (include "x-pdb.fullname" .) .Values.webhook.service.nameOverride }}-webhook
+  namespace: {{ include "x-pdb.namespace" . }}
+  labels:
+    {{- include "x-pdb.webhookLabels" . | nindent 4 }}
+spec:
+  type: {{ .Values.webhook.service.type }}
+  ports:
+    - port: 443
+      name: webhook
+      protocol: TCP
+      targetPort: webhook
+      {{- with .Values.webhook.service.nodePort }}
+      nodePort: {{ . }}
+      {{- end }}
+    - port: {{ .Values.webhook.serviceMonitor.service.port }}
+      name: metrics
+      protocol: TCP
+      targetPort: metrics
+  selector:
+    {{- include "x-pdb.webhookSelectorLabels" . | nindent 4 }}

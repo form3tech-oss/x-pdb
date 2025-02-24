@@ -1,30 +1,37 @@
-automountServiceAccountToken: true
-replicaCount: 2
 webhook:
-  enabled: true
-  tls:
-    certManager:
-      enabled: true
-      issuerRef:
-        kind: ClusterIssuer
-        name: cluster-issuer
   namespaceSelector:
     matchLabels:
       kubernetes.io/metadata.name: default
-controller:
+  image:
+    tag: "latest"
+  extraArgs:
+  - --zap-stacktrace-level=panic
+  automountServiceAccountToken: true
+  log:
+    level: debug
+state:
+  log:
+    level: debug
+  image:
+    tag: "latest"
   extraArgs:
   - --zap-stacktrace-level=panic
   # remoteEndpoints computed dynamically via install-xpdb.sh
-  tls:
+  service:
+    type: LoadBalancer
+    # loadBalancerIP computed dynamically via install-xpdb.sh
+  automountServiceAccountToken: false
+certificates:
+  state:
     certManager:
       enabled: true
       issuerRef:
         kind: ClusterIssuer
         name: cluster-issuer
       # ipAddresses computed dynamically via install-xpdb.sh
-service:
-  controller:
-    type: LoadBalancer
-    # loadBalancerIP computed dynamically via install-xpdb.sh
-image:
-  tag: "latest"
+  webhook:
+    certManager:
+      enabled: true
+      issuerRef:
+        kind: ClusterIssuer
+        name: cluster-issuer
